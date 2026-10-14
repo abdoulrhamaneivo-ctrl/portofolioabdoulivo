@@ -4,13 +4,13 @@ import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { AwsClient } from 'aws4fetch';
 import { hasAdminSession } from '@/lib/admin-auth';
+import { objectStorageEndpoint, objectStorageSigningRegion, PORTFOLIO_STORAGE_BUCKET } from '@/lib/object-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // Vercel Functions cap incoming request bodies at 4.5 MB, including multipart overhead.
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
-const BUCKET = 'portfolio-public-assets';
 
 const mimeByExtension: Record<string, { mime: string; extension: string }> = {
   pdf: { mime: 'application/pdf', extension: '.pdf' },
@@ -32,12 +32,6 @@ const allowedTypes: Record<string, Set<string>> = {
 
 function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status });
-}
-
-function storageSigningRegion() {
-  const configuredRegion = process.env.AWS_REGION?.trim() || 'eu-central-1';
-  // Neon may expose its region as `aws-eu-central-1`; SigV4 expects the AWS region alone.
-  return configuredRegion.replace(/^aws-/i, '');
 }
 
 export async function POST(request: NextRequest) {
@@ -83,14 +77,15 @@ export async function POST(request: NextRequest) {
     .filter((name) => !process.env[name]);
   if (missingStorageConfig.length === 0) {
     try {
-      const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
+      const endpoint = objectStorageEndpoint();
+      if (!endpoint) return jsonError('Le stockage du site est incomplet (AWS_ENDPOINT_URL_S3). Contacte l’administrateur du site.', 503);
       const client = new AwsClient({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
         service: 's3',
-        region: storageSigningRegion(),
+        region: objectStorageSigningRegion(),
       });
-      const upload = await client.fetch(`${endpoint}/${BUCKET}/${fileName}`, {
+      const upload = await client.fetch(`${endpoint}/${PORTFOLIO_STORAGE_BUCKET}/${fileName}`, {
         method: 'PUT',
         body: content,
         headers: { 'content-type': mime },
@@ -104,7 +99,7 @@ export async function POST(request: NextRequest) {
           status: upload.status,
           code: storageCode,
           message: storageMessage.slice(0, 220),
-          region: storageSigningRegion(),
+          region: objectStorageSigningRegion(),
           kind,
           size: file.size,
         });

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
+import { objectStorageEndpoint, PORTFOLIO_STORAGE_BUCKET } from '@/lib/object-storage';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,9 +24,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
     return new NextResponse('Fichier introuvable.', { status: 404 });
   }
 
-  if (process.env.AWS_ENDPOINT_URL_S3) {
-    const endpoint = process.env.AWS_ENDPOINT_URL_S3.replace(/\/$/, '');
-    return NextResponse.redirect(`${endpoint}/portfolio-public-assets/${filename}`, 307);
+  const endpoint = objectStorageEndpoint();
+  if (endpoint) {
+    return NextResponse.redirect(`${endpoint}/${PORTFOLIO_STORAGE_BUCKET}/${filename}`, 307);
   }
 
   const extension = filename.split('.').pop() || '';
