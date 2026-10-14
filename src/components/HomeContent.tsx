@@ -10,8 +10,21 @@ function valuesFrom(items: string[]) {
   return Array.from(new Set(items.flatMap((item) => item.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean))));
 }
 
+function useReducedMotionFlag() {
+  const reducedMotion = useRef(false);
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => { reducedMotion.current = preference.matches; };
+    update();
+    preference.addEventListener('change', update);
+    return () => preference.removeEventListener('change', update);
+  }, []);
+  return reducedMotion;
+}
+
 function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
   const [portraitFailed, setPortraitFailed] = useState(false);
+  const reducedMotion = useReducedMotionFlag();
   const initials = data.profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
   return (
@@ -21,7 +34,7 @@ function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data
         role="group"
         aria-label="Fiche de profil en relief. Déplace le pointeur pour révéler les différentes couches."
         onPointerMove={(event) => {
-          if (event.pointerType === 'touch') return;
+          if (event.pointerType !== 'mouse' || reducedMotion.current) return;
           const bounds = event.currentTarget.getBoundingClientRect();
           const x = (event.clientX - bounds.left) / bounds.width - 0.5;
           const y = (event.clientY - bounds.top) / bounds.height - 0.5;
@@ -74,12 +87,13 @@ function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data
 
 function ProjectStory({ project, index }: { project: PortfolioProject; index: number }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const reducedMotion = useReducedMotionFlag();
   return (
     <Link
       href={`/projects/${project.id}`}
       className={`story-project story-project--${index % 2 ? 'reverse' : 'forward'} story-reveal`}
       onPointerMove={(event) => {
-        if (event.pointerType === 'touch') return;
+        if (event.pointerType !== 'mouse' || reducedMotion.current) return;
         const bounds = event.currentTarget.getBoundingClientRect();
         const x = (event.clientX - bounds.left) / bounds.width - 0.5;
         const y = (event.clientY - bounds.top) / bounds.height - 0.5;
@@ -256,7 +270,7 @@ function CertificateCard({ certificate, index }: { certificate: PortfolioCertifi
 }
 
 export default function HomeContent({ data }: { data: PortfolioData }) {
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const progressBarRef = useRef<HTMLSpanElement>(null);
   const publishedJourney = useMemo(() => data.journey.filter((item) => item.published).sort((a, b) => {
     const startYear = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
     return startYear(b.period) - startYear(a.period);
@@ -290,21 +304,28 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     }, { threshold: 0.14, rootMargin: '0px 0px -48px 0px' });
     reveals.forEach((item) => observer.observe(item));
 
+    const timeline = document.querySelector<HTMLElement>('.story-timeline');
+    let frame: number | null = null;
     const updateProgress = () => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-      setScrollProgress(scrollable > 0 ? window.scrollY / scrollable : 0);
-      const timeline = document.querySelector<HTMLElement>('.story-timeline');
-      if (timeline) {
-        const top = timeline.getBoundingClientRect().top;
-        const beamHeight = Math.max(0, Math.min(timeline.offsetHeight - 21, window.innerHeight * 0.68 - top));
-        timeline.style.setProperty('--timeline-beam-progress', `${beamHeight}px`);
-      }
+      if (frame !== null) return;
+      frame = requestAnimationFrame(() => {
+        frame = null;
+        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+        progressBarRef.current?.style.setProperty('transform', `scaleX(${progress})`);
+        if (timeline) {
+          const top = timeline.getBoundingClientRect().top;
+          const beamHeight = Math.max(0, Math.min(timeline.offsetHeight - 21, window.innerHeight * 0.68 - top));
+          timeline.style.setProperty('--timeline-beam-progress', `${beamHeight}px`);
+        }
+      });
     };
     updateProgress();
     window.addEventListener('scroll', updateProgress, { passive: true });
     window.addEventListener('resize', updateProgress);
     return () => {
       observer.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
       root.classList.remove('motion-ready');
       window.removeEventListener('scroll', updateProgress);
       window.removeEventListener('resize', updateProgress);
@@ -318,7 +339,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
 
   return (
     <div className="home-story">
-      <div className="story-progress" aria-hidden="true"><span style={{ transform: `scaleX(${scrollProgress})` }} /></div>
+      <div className="story-progress" aria-hidden="true"><span ref={progressBarRef} /></div>
 
       <section className="story-hero" id="accueil">
         <div className="story-hero-copy">

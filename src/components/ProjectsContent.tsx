@@ -18,7 +18,11 @@ function ProjectImage({ project, index }: { project: PortfolioProject; index: nu
 
 export default function ProjectsContent({ projects }: { projects: PortfolioProject[] }) {
   const pageRef = useRef<HTMLElement>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const progressRef = useRef<HTMLSpanElement>(null);
+  const pointerFrameRef = useRef<number | null>(null);
+  const pointerCardRef = useRef<HTMLAnchorElement | null>(null);
+  const pointerValueRef = useRef<{ tiltX: number; tiltY: number; x: number; y: number } | null>(null);
+  const reducedMotionRef = useRef(false);
   const totalTechnologies = new Set(projects.flatMap((project) => project.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).size;
   const sceneProject = projects.find((project) => project.featured) || projects[0];
   const sceneTechnologies = sceneProject ? Array.from(new Set(sceneProject.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).slice(0, 4) : [];
@@ -26,6 +30,10 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
   useEffect(() => {
     const page = pageRef.current;
     if (!page) return;
+    const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const updateMotionPreference = () => { reducedMotionRef.current = motionPreference.matches; };
+    updateMotionPreference();
+    motionPreference.addEventListener('change', updateMotionPreference);
     const root = document.documentElement;
     root.classList.add('project-motion-ready');
     const revealNodes = Array.from(page.querySelectorAll<HTMLElement>('.project-reveal'));
@@ -39,20 +47,24 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
     }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
     revealNodes.forEach((node) => observer.observe(node));
 
-    let frame = 0;
+    let frame: number | null = null;
     const updateProgress = () => {
-      cancelAnimationFrame(frame);
+      if (frame !== null) return;
       frame = requestAnimationFrame(() => {
+        frame = null;
         const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-        setScrollProgress(scrollable > 0 ? window.scrollY / scrollable : 0);
+        const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+        progressRef.current?.style.setProperty('transform', `scaleX(${progress})`);
       });
     };
     updateProgress();
     window.addEventListener('scroll', updateProgress, { passive: true });
     window.addEventListener('resize', updateProgress);
     return () => {
-      cancelAnimationFrame(frame);
+      if (frame !== null) cancelAnimationFrame(frame);
+      if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current);
       observer.disconnect();
+      motionPreference.removeEventListener('change', updateMotionPreference);
       root.classList.remove('project-motion-ready');
       window.removeEventListener('scroll', updateProgress);
       window.removeEventListener('resize', updateProgress);
@@ -60,7 +72,7 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
   }, [projects.length]);
 
   return <section ref={pageRef} className="portfolio-projects-page">
-    <div className="project-scroll-progress" aria-hidden="true"><span style={{ transform: `scaleX(${scrollProgress})` }} /></div>
+    <div className="project-scroll-progress" aria-hidden="true"><span ref={progressRef} /></div>
     <div className="project-page-shell">
       <header className="project-page-hero">
         <div className="project-page-intro project-reveal">
@@ -98,16 +110,31 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
           className="tech-project-card project-reveal"
           style={{ transitionDelay: `${Math.min(index % 3, 2) * 90}ms` }}
           onPointerMove={(event) => {
-            if (event.pointerType === 'touch') return;
+            if (event.pointerType !== 'mouse' || reducedMotionRef.current) return;
             const bounds = event.currentTarget.getBoundingClientRect();
             const x = (event.clientX - bounds.left) / bounds.width;
             const y = (event.clientY - bounds.top) / bounds.height;
-            event.currentTarget.style.setProperty('--card-tilt-x', `${(0.5 - y) * 7}deg`);
-            event.currentTarget.style.setProperty('--card-tilt-y', `${(x - 0.5) * 7}deg`);
-            event.currentTarget.style.setProperty('--card-pointer-x', `${x * 100}%`);
-            event.currentTarget.style.setProperty('--card-pointer-y', `${y * 100}%`);
+            pointerCardRef.current = event.currentTarget;
+            pointerValueRef.current = { tiltX: (0.5 - y) * 7, tiltY: (x - 0.5) * 7, x: x * 100, y: y * 100 };
+            if (pointerFrameRef.current !== null) return;
+            pointerFrameRef.current = requestAnimationFrame(() => {
+              pointerFrameRef.current = null;
+              const card = pointerCardRef.current;
+              const pointer = pointerValueRef.current;
+              if (!card || !pointer) return;
+              card.style.setProperty('--card-tilt-x', `${pointer.tiltX}deg`);
+              card.style.setProperty('--card-tilt-y', `${pointer.tiltY}deg`);
+              card.style.setProperty('--card-pointer-x', `${pointer.x}%`);
+              card.style.setProperty('--card-pointer-y', `${pointer.y}%`);
+            });
           }}
           onPointerLeave={(event) => {
+            if (pointerCardRef.current === event.currentTarget) {
+              if (pointerFrameRef.current !== null) cancelAnimationFrame(pointerFrameRef.current);
+              pointerFrameRef.current = null;
+              pointerCardRef.current = null;
+              pointerValueRef.current = null;
+            }
             event.currentTarget.style.setProperty('--card-tilt-x', '0deg');
             event.currentTarget.style.setProperty('--card-tilt-y', '0deg');
             event.currentTarget.style.setProperty('--card-pointer-x', '50%');
