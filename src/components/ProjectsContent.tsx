@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowDownRight, ArrowUpRight, Cpu, Layers3 } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Layers3 } from 'lucide-react';
 import type { PortfolioProject } from '@/lib/portfolio';
 
 function ProjectImage({ project, index }: { project: PortfolioProject; index: number }) {
@@ -20,6 +20,8 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
   const pageRef = useRef<HTMLElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const totalTechnologies = new Set(projects.flatMap((project) => project.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).size;
+  const sceneProject = projects.find((project) => project.featured) || projects[0];
+  const sceneTechnologies = sceneProject ? Array.from(new Set(sceneProject.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).slice(0, 4) : [];
 
   useEffect(() => {
     const page = pageRef.current;
@@ -69,9 +71,16 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
           <a className="project-scroll-link" href="#realisations"><span>Explorer les projets</span><ArrowDownRight size={17} /></a>
         </div>
         <div className="project-hero-console project-reveal" aria-hidden="true">
-          <div className="project-console-top"><span>SESSION / PORTFOLIO</span><span>● EN LIGNE</span></div>
-          <div className="project-console-graphic"><div className="project-console-grid" /><div className="project-console-orbit project-console-orbit-a" /><div className="project-console-orbit project-console-orbit-b" /><div className="project-console-core"><Cpu size={35} strokeWidth={1.2} /></div><span className="project-console-node node-a" /><span className="project-console-node node-b" /><span className="project-console-node node-c" /></div>
-          <div className="project-console-bottom"><span>CONCEVOIR <i>→</i> CONSTRUIRE <i>→</i> APPRENDRE</span><Layers3 size={14} /></div>
+          <div className="project-console-top"><span>{sceneProject ? `PROJET / ${sceneProject.featured ? 'À LA UNE' : 'SÉLECTION'}` : 'ESPACE PROJETS / PRÊT'}</span><span>● {String(projects.length).padStart(2, '0')} PUBLICATION{projects.length === 1 ? '' : 'S'}</span></div>
+          <div className="project-console-graphic"><div className="project-console-grid" /><div className="project-console-orbit project-console-orbit-a" /><div className="project-console-orbit project-console-orbit-b" />
+            <div className="project-console-core">
+              <span>ÉTUDE DE CAS / 01</span>
+              <strong>{sceneProject?.title || 'Le prochain projet'}</strong>
+              <p>{sceneProject?.summary || 'Ajoute une réalisation dans l’administration pour la faire apparaître ici.'}</p>
+            </div>
+            {sceneTechnologies.map((technology, index) => <span className={`project-console-tech-node tech-node-${index + 1}`} key={technology}>{technology}</span>)}
+          </div>
+          <div className="project-console-bottom"><span>{sceneProject ? `${sceneTechnologies.length.toString().padStart(2, '0')} TECHNOLOGIES ASSOCIÉES` : <>PROBLÈME <i>→</i> CONTRIBUTION <i>→</i> SOLUTION</>}</span><Layers3 size={14} /></div>
         </div>
         <div className="project-hero-footnote"><span>SCROLL POUR DÉCOUVRIR</span><span className="project-footnote-line" /><span>↓</span></div>
       </header>

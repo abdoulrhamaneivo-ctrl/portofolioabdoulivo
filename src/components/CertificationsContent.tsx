@@ -35,7 +35,7 @@ export default function CertificationsContent({ certificates }: { certificates: 
       <select className={selectClass} value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Filtrer par niveau">{levels.map((item) => <option key={item}>{item}</option>)}</select>
     </div>
     <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">{results.length} document{results.length === 1 ? '' : 's'}</p>
-    {results.length ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">{results.map((item) => <article key={item.id} className="relative p-6 border border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl bg-white dark:bg-neutral-950">
+    {results.length ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">{results.map((item) => <article id={`certificate-${item.id}`} key={item.id} className="relative scroll-mt-28 p-6 border border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl bg-white dark:bg-neutral-950">
       <div className="flex items-start justify-between gap-3"><span className="px-2.5 py-1 text-xs rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">{item.type || 'Certificat'}</span>{item.date && <span className="text-xs text-neutral-500">{formatMonth(item.date)}</span>}</div>
       <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-neutral-100">{item.title}</h3>
       {item.issuer && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{item.issuer}</p>}

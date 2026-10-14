@@ -116,6 +116,101 @@ function ProjectStory({ project, index }: { project: PortfolioProject; index: nu
   );
 }
 
+type SkillEvidence = {
+  name: string;
+  projects: PortfolioProject[];
+  certificates: PortfolioCertificate[];
+};
+
+function SkillEvidenceExplorer({ projects, certificates }: { projects: PortfolioProject[]; certificates: PortfolioCertificate[] }) {
+  const evidence = useMemo(() => {
+    const entries = new Map<string, SkillEvidence>();
+    const getEntry = (name: string) => {
+      const key = name.toLocaleLowerCase('fr-FR');
+      let entry = entries.get(key);
+      if (!entry) {
+        entry = { name, projects: [], certificates: [] };
+        entries.set(key, entry);
+      }
+      return entry;
+    };
+
+    projects.forEach((project) => {
+      valuesFrom([project.technologies]).forEach((name) => getEntry(name).projects.push(project));
+    });
+    certificates.forEach((certificate) => {
+      valuesFrom([certificate.skills]).forEach((name) => getEntry(name).certificates.push(certificate));
+    });
+
+    return Array.from(entries.values())
+      .sort((a, b) => (b.projects.length + b.certificates.length) - (a.projects.length + a.certificates.length) || a.name.localeCompare(b.name, 'fr'))
+      .slice(0, 14);
+  }, [projects, certificates]);
+  const [activeName, setActiveName] = useState('');
+  const active = evidence.find((item) => item.name === activeName) || evidence[0];
+
+  if (!evidence.length) return null;
+
+  return (
+    <div className="story-skill-explorer">
+      <div className="story-skill-explorer-head">
+        <span><i aria-hidden="true" /> CARTOGRAPHIE DES SAVOIR-FAIRE</span>
+        <span>{evidence.length.toString().padStart(2, '0')} NŒUDS · SOURCES PUBLIÉES</span>
+      </div>
+      <div className="story-skill-node-grid" role="group" aria-label="Choisir une compétence pour afficher les projets et certificats associés">
+        {evidence.map((item, index) => {
+          const isActive = item.name === active.name;
+          const evidenceCount = item.projects.length + item.certificates.length;
+          return (
+            <button
+              key={item.name}
+              type="button"
+              className={`story-skill-node${isActive ? ' is-active' : ''}`}
+              aria-pressed={isActive}
+              aria-label={`${item.name}, ${evidenceCount} preuve${evidenceCount === 1 ? '' : 's'}`}
+              onClick={() => setActiveName(item.name)}
+              style={{ transitionDelay: `${Math.min(index, 10) * 25}ms` }}
+            >
+              <span className="story-skill-node-label">{item.name}</span>
+              <span className="story-skill-node-count">{evidenceCount.toString().padStart(2, '0')} preuve{evidenceCount === 1 ? '' : 's'}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="story-skill-evidence" key={active.name} aria-live="polite" aria-atomic="true">
+        <div className="story-skill-evidence-heading">
+          <div><span>RELATIONS / {active.projects.length + active.certificates.length} SOURCES</span><h3>{active.name}</h3></div>
+          <span className="story-skill-evidence-pulse"><i /> LIÉ AUX PREUVES</span>
+        </div>
+        <div className="story-skill-evidence-grid">
+          <div className="story-skill-evidence-group">
+            <div className="story-skill-evidence-label"><span>PROJETS</span><span>{active.projects.length.toString().padStart(2, '0')}</span></div>
+            {active.projects.length ? active.projects.map((project) => (
+              <Link className="story-skill-source" key={project.id} href={`/projects/${project.id}`}>
+                <small>TECHNOLOGIE UTILISÉE</small>
+                <strong>{project.title}</strong>
+                <span>{project.contribution || project.summary || 'Voir l’étude de cas et sa réalisation.'}</span>
+                <i aria-hidden="true">↗</i>
+              </Link>
+            )) : <p className="story-skill-source-empty">Aucun projet publié ne cite encore cette compétence.</p>}
+          </div>
+          <div className="story-skill-evidence-group">
+            <div className="story-skill-evidence-label"><span>CERTIFICATS</span><span>{active.certificates.length.toString().padStart(2, '0')}</span></div>
+            {active.certificates.length ? active.certificates.map((certificate) => (
+              <Link className="story-skill-source" key={certificate.id} href={`/certifications#certificate-${certificate.id}`}>
+                <small>{certificate.issuer || certificate.type || 'APPRENTISSAGE DOCUMENTÉ'}</small>
+                <strong>{certificate.title}</strong>
+                <span>{[certificate.domain, certificate.date].filter(Boolean).join(' · ') || 'Consulter la fiche de cette preuve.'}</span>
+                <i aria-hidden="true">↗</i>
+              </Link>
+            )) : <p className="story-skill-source-empty">Aucun certificat publié ne détaille encore cette compétence.</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CertificateCard({ certificate, index }: { certificate: PortfolioCertificate; index: number }) {
   const [isFlipped, setIsFlipped] = useState(false);
   const frontButtonRef = useRef<HTMLButtonElement>(null);
@@ -129,6 +224,7 @@ function CertificateCard({ certificate, index }: { certificate: PortfolioCertifi
 
   return (
     <article
+      id={`certificate-${certificate.id}`}
       className={`story-certificate-card story-reveal${isFlipped ? ' is-flipped' : ''}`}
       onPointerLeave={(event) => { if (event.pointerType === 'mouse' && !event.currentTarget.contains(document.activeElement)) setIsFlipped(false); }}
     >
@@ -274,7 +370,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       <section className="story-section story-skills" id="competences">
         <div className="story-section-aside story-reveal"><span>05 / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
         <div className="story-skills-main story-reveal"><p className="story-kicker">Ce que j’apprends à maîtriser</p><h2>Les compétences se construisent, projet après projet.</h2><p className="story-skills-copy">Les domaines ci-dessous sont tirés des technologies utilisées dans les projets et des compétences mentionnées dans les certificats publiés.</p>
-          {skills.length ? <div className="story-skill-cloud">{skills.slice(0, 14).map((skill, index) => <span key={skill} style={{ animationDelay: `${index * 45}ms` }}>{skill}<i aria-hidden="true">↗</i></span>)}</div> : <p className="story-skills-empty">Publie un projet ou un certificat pour faire apparaître ici les compétences appuyées par des réalisations réelles.</p>}
+          {skills.length ? <SkillEvidenceExplorer projects={publishedProjects} certificates={publishedCertificates} /> : <p className="story-skills-empty">Publie un projet ou un certificat pour faire apparaître ici les compétences appuyées par des réalisations réelles.</p>}
           <Link href="/competences" className="story-section-link">Voir les compétences détaillées <span aria-hidden="true">⟶</span></Link>
         </div>
       </section>
