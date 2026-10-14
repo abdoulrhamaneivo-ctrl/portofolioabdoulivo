@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PortfolioCertificate, PortfolioData, PortfolioProject } from '@/lib/portfolio';
@@ -10,24 +10,31 @@ function valuesFrom(items: string[]) {
   return Array.from(new Set(items.flatMap((item) => item.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean))));
 }
 
-function OrbitScene({ projectCount, certificateCount, skillCount }: { projectCount: number; certificateCount: number; skillCount: number }) {
+function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
+  const [portraitFailed, setPortraitFailed] = useState(false);
+  const initials = data.profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+
   return (
-    <figure className="story-orbit-figure">
+    <div className="story-orbit-figure">
       <div
         className="story-orbit-stage"
         role="group"
-        aria-label="Scène interactive en trois dimensions. Fais glisser le modèle pour le faire pivoter."
+        aria-label="Fiche de profil en relief. Déplace le pointeur pour révéler les différentes couches."
         onPointerMove={(event) => {
           if (event.pointerType === 'touch') return;
           const bounds = event.currentTarget.getBoundingClientRect();
           const x = (event.clientX - bounds.left) / bounds.width - 0.5;
           const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 13}deg`);
-          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 13}deg`);
+          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 8}deg`);
+          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 8}deg`);
+          event.currentTarget.style.setProperty('--profile-light-x', `${(x + 0.5) * 100}%`);
+          event.currentTarget.style.setProperty('--profile-light-y', `${(y + 0.5) * 100}%`);
         }}
         onPointerLeave={(event) => {
           event.currentTarget.style.setProperty('--pointer-tilt-x', '0deg');
           event.currentTarget.style.setProperty('--pointer-tilt-y', '0deg');
+          event.currentTarget.style.setProperty('--profile-light-x', '50%');
+          event.currentTarget.style.setProperty('--profile-light-y', '45%');
         }}
       >
         <div className="story-orbit-backdrop" />
@@ -41,28 +48,27 @@ function OrbitScene({ projectCount, certificateCount, skillCount }: { projectCou
           <span className="story-orbit-node story-orbit-node--two" />
           <span className="story-orbit-node story-orbit-node--three" />
         </div>
-        <div className="story-sketchfab-shell">
-          <iframe
-            title="Modèle 3D interactif Cyber Orb sur Sketchfab"
-            src="https://sketchfab.com/models/8a81aa847da74a5cb36bd8ba13f6ae5e/embed?autostart=1&autospin=0.14&dnt=1&scrollwheel=0&ui_theme=dark"
-            allow="autoplay; fullscreen; xr-spatial-tracking"
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-          <span className="story-sketchfab-label">OBJET 3D / INTERACTIF</span>
-        </div>
+        <div className="story-profile-backplate" aria-hidden="true" />
+        <article className="story-profile-plate">
+          <div className="story-profile-topline"><span>IDENTITÉ NUMÉRIQUE / 01</span><span><i /> PROFIL</span></div>
+          <div className="story-profile-main">
+            <div className="story-profile-avatar">
+              {data.profile.portraitUrl && !portraitFailed ? <Image src={data.profile.portraitUrl} alt={data.profile.fullName ? `Portrait de ${data.profile.fullName}` : 'Portrait du profil'} fill sizes="72px" className="story-profile-portrait" unoptimized onError={() => setPortraitFailed(true)} /> : <span>{initials || '✦'}</span>}
+            </div>
+            <div className="story-profile-identity"><span>PORTFOLIO PERSONNEL</span><h2>{data.profile.fullName || 'Profil à compléter'}</h2><p>{data.profile.title || 'Parcours numérique en construction'}</p></div>
+          </div>
+          <div className="story-profile-metrics">
+            <div><strong>{projectCount.toString().padStart(2, '0')}</strong><span>PROJETS</span></div>
+            <div><strong>{certificateCount.toString().padStart(2, '0')}</strong><span>CERTIFICATS</span></div>
+            <div><strong>{skillCount.toString().padStart(2, '0')}</strong><span>COMPÉTENCES</span></div>
+          </div>
+          <div className="story-profile-footer"><span>PARCOURS EN MOUVEMENT</span><span>● ACTUALISÉ</span></div>
+        </article>
         <div className="story-orbit-note story-orbit-note--top"><span>01</span> Parcours en mouvement</div>
         <div className="story-orbit-note story-orbit-note--bottom"><span>02</span> Preuves concrètes</div>
-        <div className="story-orbit-counts">
-          <div><strong>{projectCount.toString().padStart(2, '0')}</strong><span>projets</span></div>
-          <div><strong>{certificateCount.toString().padStart(2, '0')}</strong><span>certificats</span></div>
-          <div><strong>{skillCount.toString().padStart(2, '0')}</strong><span>compétences</span></div>
-        </div>
         <span className="story-orbit-caption">ESPACE PERSONNEL · NUMÉRIQUE</span>
       </div>
-      <figcaption className="story-model-credit">Modèle « Cyber Orb » par <a href="https://sketchfab.com/3d-models/cyber-orb-8a81aa847da74a5cb36bd8ba13f6ae5e" target="_blank" rel="noreferrer">Tycho Magnetic Anomaly</a> · licence CC Attribution</figcaption>
-    </figure>
+    </div>
   );
 }
 
@@ -111,19 +117,46 @@ function ProjectStory({ project, index }: { project: PortfolioProject; index: nu
 }
 
 function CertificateCard({ certificate, index }: { certificate: PortfolioCertificate; index: number }) {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const frontButtonRef = useRef<HTMLButtonElement>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const verificationUrl = safeExternalUrl(certificate.verificationUrl);
-  const content = (
-    <>
-      <span className="story-certificate-index">0{index + 1} / PREUVE</span>
-      <span className="story-certificate-seal" aria-hidden="true">✳</span>
-      <span className="story-certificate-title">{certificate.title}</span>
-      <span className="story-certificate-meta">{[certificate.issuer, certificate.date && new Date(certificate.date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })].filter(Boolean).join(' · ')}</span>
-      {certificate.domain && <span className="story-certificate-domain">{certificate.domain}</span>}
-      <span className="story-certificate-open">{verificationUrl ? 'Vérifier la certification ↗' : certificate.fileUrl ? 'Consulter le document ↗' : 'Voir dans la bibliothèque ↗'}</span>
-    </>
-  );
+  const certificateSkills = valuesFrom([certificate.skills]);
+  const actionLabel = verificationUrl ? 'Vérifier la certification ↗' : certificate.fileUrl ? 'Consulter le document ↗' : 'Voir dans la bibliothèque ↗';
+  const certificateLink = (label: string, tabIndex: number) => verificationUrl
+    ? <a href={verificationUrl} target="_blank" rel="noreferrer" tabIndex={tabIndex}>{label}</a>
+    : <Link href={certificate.fileUrl || '/certifications'} target={certificate.fileUrl ? '_blank' : undefined} rel={certificate.fileUrl ? 'noreferrer' : undefined} tabIndex={tabIndex}>{label}</Link>;
 
-  return verificationUrl ? <a className="story-certificate-card story-reveal" href={verificationUrl} target="_blank" rel="noreferrer">{content}</a> : <Link className="story-certificate-card story-reveal" href={certificate.fileUrl || '/certifications'} target={certificate.fileUrl ? '_blank' : undefined} rel={certificate.fileUrl ? 'noreferrer' : undefined}>{content}</Link>;
+  return (
+    <article
+      className={`story-certificate-card story-reveal${isFlipped ? ' is-flipped' : ''}`}
+      onPointerLeave={(event) => { if (event.pointerType === 'mouse' && !event.currentTarget.contains(document.activeElement)) setIsFlipped(false); }}
+    >
+      <div className="story-certificate-card-inner">
+        <div className="story-certificate-face story-certificate-front" aria-hidden={isFlipped}>
+          <span className="story-certificate-index">0{index + 1} / PREUVE</span>
+          <span className="story-certificate-seal" aria-hidden="true">✳</span>
+          <span className="story-certificate-title">{certificate.title}</span>
+          <span className="story-certificate-meta">{[certificate.issuer, certificate.date && new Date(certificate.date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })].filter(Boolean).join(' · ')}</span>
+          {certificate.domain && <span className="story-certificate-domain">{certificate.domain}</span>}
+          <div className="story-certificate-actions">
+            <button ref={frontButtonRef} type="button" tabIndex={isFlipped ? -1 : 0} onClick={() => { setIsFlipped(true); requestAnimationFrame(() => backButtonRef.current?.focus()); }}>Détails ↗</button>
+            {certificateLink(actionLabel, isFlipped ? -1 : 0)}
+          </div>
+        </div>
+        <div className="story-certificate-face story-certificate-back" aria-hidden={!isFlipped}>
+          <span className="story-certificate-index">DÉTAILS / 0{index + 1}</span>
+          <strong className="story-certificate-back-title">Ce que cette preuve couvre</strong>
+          <span className="story-certificate-type">{certificate.type || 'Certification'}{certificate.level ? ` · ${certificate.level}` : ''}</span>
+          {certificateSkills.length ? <div className="story-certificate-skills">{certificateSkills.map((skill) => <span key={skill}>{skill}</span>)}</div> : <p className="story-certificate-missing">Ajoute les compétences couvertes depuis l’administration pour documenter cette preuve.</p>}
+          <div className="story-certificate-actions">
+            <button ref={backButtonRef} type="button" tabIndex={isFlipped ? 0 : -1} onClick={() => { setIsFlipped(false); requestAnimationFrame(() => frontButtonRef.current?.focus()); }}>Retour ↶</button>
+            {certificateLink(actionLabel, isFlipped ? 0 : -1)}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function HomeContent({ data }: { data: PortfolioData }) {
@@ -164,6 +197,12 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     const updateProgress = () => {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       setScrollProgress(scrollable > 0 ? window.scrollY / scrollable : 0);
+      const timeline = document.querySelector<HTMLElement>('.story-timeline');
+      if (timeline) {
+        const top = timeline.getBoundingClientRect().top;
+        const beamHeight = Math.max(0, Math.min(timeline.offsetHeight - 21, window.innerHeight * 0.68 - top));
+        timeline.style.setProperty('--timeline-beam-progress', `${beamHeight}px`);
+      }
     };
     updateProgress();
     window.addEventListener('scroll', updateProgress, { passive: true });
@@ -201,7 +240,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
             <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
           </div>
         </div>
-        <div className="story-hero-art story-reveal"><OrbitScene projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
+        <div className="story-hero-art story-reveal"><OrbitScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
         <div className="story-side-label" aria-hidden="true">PORTFOLIO — {name ? name.toUpperCase() : 'DOSSIER PERSONNEL'}</div>
       </section>
 
