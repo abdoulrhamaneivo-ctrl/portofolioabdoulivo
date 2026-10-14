@@ -10,11 +10,16 @@ const contentTypes: Record<string, string> = {
   jpg: 'image/jpeg',
   png: 'image/png',
   webp: 'image/webp',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  odt: 'application/vnd.oasis.opendocument.text',
 };
+
+const inlineExtensions = new Set(['pdf', 'jpg', 'png', 'webp']);
 
 export async function GET(_request: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
-  if (!/^(certificate|cv|project|profile)-[0-9a-f-]+\.(pdf|jpg|png|webp)$/.test(filename)) {
+  if (!/^(certificate|cv|project|profile)-[0-9a-f-]+\.(pdf|jpg|png|webp|doc|docx|odt)$/.test(filename)) {
     return new NextResponse('Fichier introuvable.', { status: 404 });
   }
 
@@ -28,8 +33,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
     const content = await readFile(path.join(process.cwd(), 'data', 'uploads', filename));
     return new NextResponse(new Uint8Array(content), {
       headers: {
-        'Content-Type': contentTypes[extension],
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Type': contentTypes[extension] || 'application/octet-stream',
+        'Content-Disposition': `${inlineExtensions.has(extension) ? 'inline' : 'attachment'}; filename="${filename}"`,
         'X-Content-Type-Options': 'nosniff',
         'Cache-Control': 'public, max-age=3600, immutable',
       },

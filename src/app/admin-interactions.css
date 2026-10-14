@@ -1,0 +1,5 @@
+.admin-password-field{position:relative}
+.admin-password-field .admin-input{padding-right:44px}
+.admin-password-toggle{position:absolute;top:50%;right:7px;display:grid;width:30px;height:30px;place-items:center;color:#87938a;border-radius:4px;transform:translateY(-50%);transition:color .16s,background .16s}
+.admin-password-toggle:hover,.admin-password-toggle:focus-visible{color:#315642;background:#f1f5f1;outline:none}
+.admin-password-toggle:focus-visible{box-shadow:0 0 0 2px #71917e33}

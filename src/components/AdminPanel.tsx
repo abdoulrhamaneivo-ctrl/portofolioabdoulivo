@@ -8,6 +8,8 @@ import {
   Briefcase,
   Check,
   ChevronRight,
+  Eye,
+  EyeOff,
   FileText,
   FolderKanban,
   Globe2,
@@ -55,6 +57,7 @@ export default function AdminPanel() {
   const [section, setSection] = useState<Section>('overview');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
@@ -129,12 +132,26 @@ export default function AdminPanel() {
   }
 
   async function uploadFile(file: File, kind: 'certificate' | 'cv' | 'project' | 'profile') {
+    if (file.size > 4 * 1024 * 1024) throw new Error('Le fichier dépasse la limite de 4 Mo. Réduis sa taille puis réessaie.');
     const formData = new FormData();
     formData.set('file', file);
     formData.set('kind', kind);
-    const response = await fetch('/api/admin/upload', { method: 'POST', body: formData });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Envoi du fichier impossible.');
+    let response: Response;
+    try {
+      response = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+    } catch {
+      throw new Error('Connexion au serveur impossible. Vérifie ta connexion puis réessaie.');
+    }
+    const body = await response.text();
+    let result: { error?: string; url?: string; fileName?: string } = {};
+    try {
+      result = JSON.parse(body) as typeof result;
+    } catch {
+      if (response.status === 413) throw new Error('Le serveur a refusé ce fichier car il dépasse sa limite d’envoi. Utilise un fichier de moins de 4 Mo.');
+      throw new Error('Le serveur a renvoyé une réponse invalide. Réessaie dans quelques instants.');
+    }
+    if (!response.ok) throw new Error(result.error || (response.status === 413 ? 'Fichier trop volumineux (4 Mo maximum).' : `Envoi impossible (erreur ${response.status}).`));
+    if (!result.url || !result.fileName) throw new Error('Le serveur n’a pas confirmé la réception du fichier.');
     return result as { url: string; fileName: string };
   }
 
@@ -249,7 +266,12 @@ export default function AdminPanel() {
               <label className="admin-label" htmlFor="admin-email">Adresse e-mail</label>
               <input id="admin-email" className="admin-input" type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
               <label className="admin-label" htmlFor="admin-password">Mot de passe administrateur</label>
-              <input id="admin-password" className="admin-input" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <div className="admin-password-field">
+                <input id="admin-password" className="admin-input" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+                <button type="button" className="admin-password-toggle" aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'} aria-pressed={showPassword} onClick={() => setShowPassword((visible) => !visible)}>
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
               {error && <p className="admin-error">{error}</p>}
               <button className="admin-primary w-full justify-center" disabled={busy}>{busy ? 'Connexion…' : 'Se connecter'}<ChevronRight size={17} /></button>
             </form>
@@ -305,7 +327,7 @@ export default function AdminPanel() {
                 <Field label="Photo de profil" hint="JPG, PNG ou WebP · 4 Mo maximum. Une photo personnelle rendra la présentation plus reconnaissable.">
                   <div className="flex items-center gap-3">
                     {data.profile.portraitUrl && <Image src={data.profile.portraitUrl} alt="Aperçu de la photo de profil" width={52} height={52} className="h-[52px] w-[52px] rounded-full border border-neutral-200 object-cover" unoptimized />}
-                    <label className="admin-upload-button"><Upload size={15} />{data.profile.portraitUrl ? 'Remplacer la photo' : 'Choisir une photo'}<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={(e) => void uploadPortrait(e.target.files?.[0])} /></label>
+                    <label className="admin-upload-button"><Upload size={15} />{data.profile.portraitUrl ? 'Remplacer la photo' : 'Choisir une photo'}<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadPortrait(file); }} /></label>
                     {data.profile.portraitUrl && <button type="button" className="admin-row-action" onClick={() => updateProfile('portraitUrl', '')}>Retirer</button>}
                   </div>
                 </Field>
@@ -363,7 +385,7 @@ export default function AdminPanel() {
                     <Field label="Lien vers le projet"><input className="admin-input" type="url" value={projectDraft.link} onChange={(e) => setProjectDraft({ ...projectDraft, link: e.target.value })} placeholder="https://…" /></Field>
                     <Field label="Preuve du travail"><input className="admin-input" type="url" value={projectDraft.proofUrl} onChange={(e) => setProjectDraft({ ...projectDraft, proofUrl: e.target.value })} placeholder="Dépôt GitHub, démonstration…" /></Field>
                     <Field label="Image du projet" hint="PNG, JPG ou WebP · 4 Mo maximum.">
-                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Choisir une image<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp" onChange={(e) => void uploadProjectImage(e.target.files?.[0])} /></label>{projectDraft.imageUrl && <span className="truncate text-xs text-emerald-700">Image ajoutée</span>}</div>
+                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Choisir une image<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadProjectImage(file); }} /></label>{projectDraft.imageUrl && <span className="truncate text-xs text-emerald-700">Image ajoutée</span>}</div>
                     </Field>
                   </div>
                   <div className="admin-check-row"><label><input type="checkbox" checked={projectDraft.published} onChange={(e) => setProjectDraft({ ...projectDraft, published: e.target.checked })} />Publier sur le site</label><label><input type="checkbox" checked={projectDraft.featured} onChange={(e) => setProjectDraft({ ...projectDraft, featured: e.target.checked })} />Mettre en avant</label></div>
@@ -382,7 +404,7 @@ export default function AdminPanel() {
 
           {section === 'certificates' && (
             <div className="max-w-5xl">
-              <div className="admin-list-heading"><SectionIntro title="Bibliothèque de certificats" description="Ajoute les cours, attestations et certifications avec leur date, organisme et lien de vérification." /><div className="admin-list-actions flex gap-2"><label className="admin-secondary cursor-pointer"><Upload size={15} />{bulkProgress || 'Importer des fichiers'}<input type="file" className="sr-only" multiple accept="application/pdf,image/png,image/jpeg,image/webp" disabled={busy} onChange={(e) => { void importCertificateFiles(e.target.files); e.currentTarget.value = ''; }} /></label><button className="admin-primary" disabled={busy} onClick={() => setCertificateDraft(emptyCertificate())}><Plus size={16} />Ajouter une fiche</button></div></div>
+              <div className="admin-list-heading"><SectionIntro title="Bibliothèque de certificats" description="Ajoute les cours, attestations et certifications avec leur date, organisme et lien de vérification." /><div className="admin-list-actions flex gap-2"><label className="admin-secondary cursor-pointer"><Upload size={15} />{bulkProgress || 'Importer des fichiers'}<input type="file" className="sr-only" multiple accept="application/pdf,image/png,image/jpeg,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.odt" disabled={busy} onChange={(e) => { const files = e.currentTarget.files; e.currentTarget.value = ''; void importCertificateFiles(files); }} /></label><button className="admin-primary" disabled={busy} onClick={() => setCertificateDraft(emptyCertificate())}><Plus size={16} />Ajouter une fiche</button></div></div>
               {certificateDraft ? (
                 <section className="admin-card mt-6">
                   <div className="admin-card-heading"><div><p className="admin-eyebrow">DOCUMENT & APPRENTISSAGE</p><h2>{data.certificates.some((item) => item.id === certificateDraft.id) ? 'Modifier le certificat' : 'Nouveau certificat'}</h2></div><button className="admin-icon-button" aria-label="Fermer" onClick={() => setCertificateDraft(null)}><X size={18} /></button></div>
@@ -395,8 +417,8 @@ export default function AdminPanel() {
                     <Field label="Nature du document"><select className="admin-input" value={certificateDraft.type} onChange={(e) => setCertificateDraft({ ...certificateDraft, type: e.target.value })}><option value="">Choisir une nature</option><option>Certification professionnelle</option><option>Cours suivi</option><option>Attestation de participation</option><option>Diplôme</option><option>Autre</option></select></Field>
                     <Field label="Compétences couvertes"><textarea className="admin-input min-h-24 resize-y" value={certificateDraft.skills} onChange={(e) => setCertificateDraft({ ...certificateDraft, skills: e.target.value })} placeholder="Sépare les compétences par des virgules." /></Field>
                     <Field label="Lien de vérification"><input className="admin-input" type="url" value={certificateDraft.verificationUrl} onChange={(e) => setCertificateDraft({ ...certificateDraft, verificationUrl: e.target.value })} placeholder="https://…" /></Field>
-                    <Field label="Document du certificat" hint="PDF, JPG, PNG ou WebP · 4 Mo maximum.">
-                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Joindre un document<input type="file" className="sr-only" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={(e) => void uploadCertificateFile(e.target.files?.[0])} /></label>{certificateDraft.fileUrl && <span className="truncate text-xs text-emerald-700">Document ajouté</span>}</div>
+                    <Field label="Document du certificat" hint="PDF, DOC, DOCX, ODT, JPG, PNG ou WebP · 4 Mo maximum.">
+                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Joindre un document<input type="file" className="sr-only" accept="application/pdf,image/png,image/jpeg,image/webp,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.odt" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadCertificateFile(file); }} /></label>{certificateDraft.fileUrl && <span className="truncate text-xs text-emerald-700">Document ajouté</span>}</div>
                     </Field>
                   </div>
                   <div className="admin-check-row"><label><input type="checkbox" checked={certificateDraft.published} onChange={(e) => setCertificateDraft({ ...certificateDraft, published: e.target.checked })} />Publier dans la bibliothèque</label><label><input type="checkbox" checked={certificateDraft.featured} onChange={(e) => setCertificateDraft({ ...certificateDraft, featured: e.target.checked })} />Mettre en avant</label></div>
@@ -416,7 +438,7 @@ export default function AdminPanel() {
           {section === 'cv' && (
             <section className="admin-card max-w-4xl">
               <SectionIntro title="Ton CV consultable" description="Envoie une version PDF. La page CV proposera ensuite la consultation et le téléchargement." />
-              <div className="admin-cv-drop mt-7"><div className="admin-icon-tile"><FileText size={22} /></div><h2 className="mt-4 text-lg font-semibold text-neutral-900">{data.cv.fileUrl ? 'Remplacer ton CV' : 'Ajouter ton CV'}</h2><p className="mt-1 text-sm text-neutral-500">PDF uniquement · 4 Mo maximum.</p><label className="admin-primary mt-5 cursor-pointer"><Upload size={16} />{busy ? 'Envoi…' : 'Choisir un PDF'}<input type="file" className="sr-only" accept="application/pdf,.pdf" disabled={busy} onChange={(e) => void uploadCv(e.target.files?.[0])} /></label>
+              <div className="admin-cv-drop mt-7"><div className="admin-icon-tile"><FileText size={22} /></div><h2 className="mt-4 text-lg font-semibold text-neutral-900">{data.cv.fileUrl ? 'Remplacer ton CV' : 'Ajouter ton CV'}</h2><p className="mt-1 text-sm text-neutral-500">PDF, DOC, DOCX ou ODT · 4 Mo maximum. Le PDF reste le plus agréable à consulter.</p><label className="admin-primary mt-5 cursor-pointer"><Upload size={16} />{busy ? 'Envoi…' : 'Choisir un fichier'}<input type="file" className="sr-only" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text,.pdf,.doc,.docx,.odt" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadCv(file); }} /></label>
                 {data.cv.fileUrl && <div className="admin-cv-current"><span className="admin-file-icon"><FileText size={17} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-neutral-800">{data.cv.fileName || 'Mon CV.pdf'}</strong><span className="text-xs text-neutral-400">{data.cv.updatedAt ? `Mis à jour le ${new Date(data.cv.updatedAt).toLocaleDateString('fr-FR')}` : 'CV disponible'}</span></span><a href={data.cv.fileUrl} target="_blank" rel="noreferrer" className="admin-text-link">Consulter<ArrowUpRight size={14} /></a></div>}
               </div>
               <p className="mt-5 text-xs leading-5 text-neutral-400">Ton CV sera accessible publiquement depuis la page dédiée. Évite d’y inclure des données personnelles dont tu ne souhaites pas la diffusion.</p>

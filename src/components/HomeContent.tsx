@@ -11,6 +11,7 @@ function valuesFrom(items: string[]) {
 }
 
 function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
+  const [portraitFailed, setPortraitFailed] = useState(false);
   const initials = data.profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
 
   return (
@@ -38,7 +39,7 @@ function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data
         <span className="story-orbit-ring story-orbit-ring--two" />
         <span className="story-orbit-ring story-orbit-ring--three" />
         <span className="story-orbit-axis" />
-        <span className="story-orbit-core">{data.profile.portraitUrl ? <Image src={data.profile.portraitUrl} alt="" fill sizes="150px" className="story-orbit-portrait" unoptimized /> : <span>{initials || '✦'}</span>}</span>
+        <span className="story-orbit-core">{data.profile.portraitUrl && !portraitFailed ? <Image src={data.profile.portraitUrl} alt="" fill sizes="150px" className="story-orbit-portrait" unoptimized onError={() => setPortraitFailed(true)} /> : <span>{initials || '✦'}</span>}</span>
         <span className="story-orbit-node story-orbit-node--one" />
         <span className="story-orbit-node story-orbit-node--two" />
         <span className="story-orbit-node story-orbit-node--three" />
@@ -56,12 +57,13 @@ function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data
 }
 
 function ProjectStory({ project, index }: { project: PortfolioProject; index: number }) {
+  const [imageFailed, setImageFailed] = useState(false);
   return (
     <Link href={`/projects/${project.id}`} className={`story-project story-project--${index % 2 ? 'reverse' : 'forward'} story-reveal`}>
       <div className="story-project-visual">
         <span className="story-project-frame" />
-        {project.imageUrl ? (
-          <Image src={project.imageUrl} alt={project.title} fill sizes="(max-width: 800px) 100vw, 55vw" className="story-project-image" unoptimized />
+        {project.imageUrl && !imageFailed ? (
+          <Image src={project.imageUrl} alt={project.title} fill sizes="(max-width: 800px) 100vw, 55vw" className="story-project-image" unoptimized onError={() => setImageFailed(true)} />
         ) : (
           <div className="story-project-placeholder" aria-hidden="true"><span>{String(index + 1).padStart(2, '0')}</span><i>✳</i></div>
         )}

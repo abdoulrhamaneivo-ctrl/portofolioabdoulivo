@@ -11,62 +11,121 @@ export const dynamic = 'force-dynamic';
 // Vercel Functions cap incoming request bodies at 4.5 MB, including multipart overhead.
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const BUCKET = 'portfolio-public-assets';
+
+const mimeByExtension: Record<string, { mime: string; extension: string }> = {
+  pdf: { mime: 'application/pdf', extension: '.pdf' },
+  jpg: { mime: 'image/jpeg', extension: '.jpg' },
+  jpeg: { mime: 'image/jpeg', extension: '.jpg' },
+  png: { mime: 'image/png', extension: '.png' },
+  webp: { mime: 'image/webp', extension: '.webp' },
+  doc: { mime: 'application/msword', extension: '.doc' },
+  docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: '.docx' },
+  odt: { mime: 'application/vnd.oasis.opendocument.text', extension: '.odt' },
+};
+
 const allowedTypes: Record<string, Set<string>> = {
-  certificate: new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']),
-  cv: new Set(['application/pdf']),
+  certificate: new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'application/msword', mimeByExtension.docx.mime, mimeByExtension.odt.mime]),
+  cv: new Set(['application/pdf', 'application/msword', mimeByExtension.docx.mime, mimeByExtension.odt.mime]),
   project: new Set(['image/jpeg', 'image/png', 'image/webp']),
   profile: new Set(['image/jpeg', 'image/png', 'image/webp']),
 };
 
-const extensions: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-};
+function jsonError(error: string, status: number) {
+  return NextResponse.json({ error }, { status });
+}
+
+function storageSigningRegion() {
+  const configuredRegion = process.env.AWS_REGION?.trim() || 'eu-central-1';
+  // Neon may expose its region as `aws-eu-central-1`; SigV4 expects the AWS region alone.
+  return configuredRegion.replace(/^aws-/i, '');
+}
 
 export async function POST(request: NextRequest) {
-  if (!hasAdminSession(request)) return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 });
+  if (!hasAdminSession(request)) return jsonError('Session expirée. Reconnecte-toi à l’administration.', 401);
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return jsonError('Le fichier n’a pas pu être lu. Réessaie avec un fichier de moins de 4 Mo.', 400);
+  }
+
   const file = formData.get('file');
   const kind = formData.get('kind');
   if (!(file instanceof File) || typeof kind !== 'string' || !allowedTypes[kind]) {
-    return NextResponse.json({ error: 'Fichier ou catégorie invalide.' }, { status: 400 });
-  }
-  if (file.size === 0 || file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'Le fichier doit peser 4 Mo maximum.' }, { status: 400 });
-  }
-  if (!allowedTypes[kind].has(file.type)) {
-    return NextResponse.json({ error: 'Format accepté : PDF ou image selon la catégorie.' }, { status: 415 });
+    return jsonError('Fichier ou catégorie invalide.', 400);
   }
 
-  const fileName = `${kind}-${randomUUID()}${extensions[file.type]}`;
+  if (file.size === 0) return jsonError('Le fichier est vide.', 400);
+  if (file.size > MAX_FILE_SIZE) return jsonError('Le fichier dépasse la limite de 4 Mo. Réduis sa taille puis réessaie.', 413);
 
-  if (process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-    const endpoint = process.env.AWS_ENDPOINT_URL_S3.replace(/\/$/, '');
-    const client = new AwsClient({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      service: 's3',
-      region: process.env.AWS_REGION || 'eu-central-1',
-    });
-    const upload = await client.fetch(`${endpoint}/${BUCKET}/${fileName}`, {
-      method: 'PUT',
-      body: new Uint8Array(await file.arrayBuffer()),
-      headers: { 'content-type': file.type },
-    });
-    if (!upload.ok) return NextResponse.json({ error: 'Le stockage du fichier a échoué.' }, { status: 502 });
-    return NextResponse.json({ url: `/uploads/${fileName}`, fileName: file.name });
+  const extension = file.name.split('.').pop()?.toLowerCase() || '';
+  const fileType = mimeByExtension[extension];
+  const providedType = file.type.toLowerCase();
+  const mime = allowedTypes[kind].has(providedType)
+    ? providedType
+    : (!providedType || providedType === 'application/octet-stream' || providedType === 'application/x-pdf')
+      ? fileType?.mime
+      : undefined;
+
+  if (!mime || !allowedTypes[kind].has(mime)) {
+    return jsonError(kind === 'cv'
+      ? 'Format accepté pour le CV : PDF, DOC, DOCX ou ODT.'
+      : kind === 'certificate'
+        ? 'Format accepté : PDF, DOC, DOCX, ODT ou image JPG, PNG, WebP.'
+        : 'Format accepté : image JPG, PNG ou WebP.', 415);
+  }
+
+  const fileName = `${kind}-${randomUUID()}${fileType?.extension || Object.values(mimeByExtension).find((entry) => entry.mime === mime)?.extension}`;
+  const content = new Uint8Array(await file.arrayBuffer());
+
+  const missingStorageConfig = ['AWS_ENDPOINT_URL_S3', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
+    .filter((name) => !process.env[name]);
+  if (missingStorageConfig.length === 0) {
+    try {
+      const endpoint = process.env.AWS_ENDPOINT_URL_S3!.replace(/\/$/, '');
+      const client = new AwsClient({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        service: 's3',
+        region: storageSigningRegion(),
+      });
+      const upload = await client.fetch(`${endpoint}/${BUCKET}/${fileName}`, {
+        method: 'PUT',
+        body: content,
+        headers: { 'content-type': mime },
+      });
+
+      if (!upload.ok) {
+        const responseBody = await upload.text();
+        const storageCode = responseBody.match(/<Code>([^<]+)<\/Code>/i)?.[1] || 'Code inconnu';
+        const storageMessage = responseBody.match(/<Message>([^<]+)<\/Message>/i)?.[1] || '';
+        console.error('Portfolio file upload rejected by storage', {
+          status: upload.status,
+          code: storageCode,
+          message: storageMessage.slice(0, 220),
+          region: storageSigningRegion(),
+          kind,
+          size: file.size,
+        });
+        return jsonError(`Le stockage a refusé le fichier (HTTP ${upload.status}, ${storageCode}). Réessaie ; si le problème continue, contacte l’administrateur.`, 502);
+      }
+
+      return NextResponse.json({ url: `/uploads/${fileName}`, fileName: file.name });
+    } catch (error) {
+      console.error('Portfolio file upload could not reach storage', error instanceof Error ? error.message : 'Unknown storage error');
+      return jsonError('Connexion au stockage impossible. Réessaie dans quelques instants.', 502);
+    }
   }
 
   if (process.env.VERCEL) {
-    return NextResponse.json({ error: 'Le stockage Neon doit être configuré avant les téléversements.' }, { status: 503 });
+    console.error('Portfolio storage configuration is incomplete', { missing: missingStorageConfig });
+    return jsonError(`Le stockage du site est incomplet (${missingStorageConfig.join(', ')}). Contacte l’administrateur du site.`, 503);
   }
 
   const directory = path.join(process.cwd(), 'data', 'uploads');
   await mkdir(directory, { recursive: true });
-  await writeFile(path.join(directory, fileName), Buffer.from(await file.arrayBuffer()), { flag: 'wx' });
+  await writeFile(path.join(directory, fileName), Buffer.from(content), { flag: 'wx' });
 
   return NextResponse.json({ url: `/uploads/${fileName}`, fileName: file.name });
 }
