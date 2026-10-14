@@ -211,7 +211,8 @@ export default function AdminPanel() {
     setError('');
     setNotice('');
     try {
-      for (const [index, file] of selectedFiles.entries()) {
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        const file = selectedFiles[index];
         setBulkProgress(`Import de ${index + 1} sur ${selectedFiles.length}…`);
         const uploaded = await uploadFile(file, 'certificate');
         const certificate = emptyCertificate();
