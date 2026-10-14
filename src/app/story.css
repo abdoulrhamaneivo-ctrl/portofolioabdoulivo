@@ -42,6 +42,7 @@
 .story-side-label { position: absolute; right: 23px; top: 50%; color: var(--story-muted); font: 500 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .15em; writing-mode: vertical-rl; transform: translateY(-50%); opacity: .7; }
 .story-hero-art { position: relative; z-index: 1; min-width: 0; }
 
+.story-orbit-figure { margin: 0; }
 .story-orbit-stage { --pointer-tilt-x: 0deg; --pointer-tilt-y: 0deg; position: relative; width: min(590px, 100%); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border: 1px solid var(--story-line); border-radius: 50%; background: radial-gradient(circle at 50% 43%, rgba(255,255,255,.85), rgba(247,247,247,.42) 42%, rgba(225,225,225,.2) 74%, transparent 75%); box-shadow: inset 0 0 70px rgba(120, 120, 120, .07), 0 40px 110px rgba(50, 50, 50, .07); perspective: 900px; }
 .dark .story-orbit-stage { background: radial-gradient(circle at 50% 43%, rgba(54,54,60,.9), rgba(34,34,39,.48) 43%, rgba(26,26,30,.22) 74%, transparent 75%); box-shadow: inset 0 0 80px rgba(139,124,255,.08), 0 40px 110px rgba(0,0,0,.25); }
 .story-orbit-backdrop { position: absolute; inset: 14%; border-radius: 50%; background: radial-gradient(circle, var(--story-accent-soft), rgba(120, 210, 203, .08) 38%, transparent 70%); filter: blur(8px); animation: orbit-breathe 7s ease-in-out infinite; }
@@ -69,6 +70,13 @@
 .story-orbit-counts strong { color: var(--story-ink); font: 600 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .story-orbit-counts span { color: var(--story-muted); font-size: 9px; }
 .story-orbit-caption { position: absolute; top: 50%; right: 7%; color: var(--story-muted); font: 500 8px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .15em; writing-mode: vertical-rl; opacity: .7; }
+.story-sketchfab-shell { position: absolute; z-index: 2; top: 48%; left: 50%; width: 56%; aspect-ratio: 1.3; overflow: hidden; border: 1px solid rgba(255,255,255,.65); border-radius: 15px; background: #11121b; box-shadow: 0 28px 75px rgba(28,25,58,.28), inset 0 1px rgba(255,255,255,.5); transform: translate(-50%, -50%) translateZ(44px) rotateX(2deg) rotateY(-3deg); transition: transform .6s cubic-bezier(.2,.7,.2,1), box-shadow .6s ease; }
+.story-orbit-stage:hover .story-sketchfab-shell { transform: translate(-50%, -50%) translateZ(55px) rotateX(0) rotateY(0); box-shadow: 0 36px 90px rgba(28,25,58,.34), inset 0 1px rgba(255,255,255,.6); }
+.story-sketchfab-shell iframe { display: block; width: 100%; height: 100%; border: 0; background: #11121b; }
+.story-sketchfab-label { position: absolute; z-index: 1; top: 9px; left: 10px; padding: 5px 7px; border: 1px solid rgba(255,255,255,.24); border-radius: 2px; color: rgba(255,255,255,.86); background: rgba(16,17,24,.55); backdrop-filter: blur(8px); font: 500 6px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; pointer-events: none; }
+.story-model-credit { margin: 10px auto 0; color: var(--story-muted); font: 500 8px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .035em; text-align: center; }
+.story-model-credit a { color: var(--story-ink); text-decoration: underline; text-decoration-color: var(--story-line); text-underline-offset: 3px; }
+.story-model-credit a:hover { color: var(--story-accent); }
 
 .story-ribbon { position: relative; z-index: 2; overflow: hidden; border-top: 1px solid var(--story-line); border-bottom: 1px solid var(--story-line); background: var(--story-panel); backdrop-filter: blur(8px); }
 .story-ribbon-track { display: flex; align-items: center; justify-content: space-around; gap: clamp(18px, 4vw, 58px); width: max-content; min-width: 100%; padding: 20px 4vw; color: var(--story-muted); animation: ribbon-flow 36s linear infinite; }
@@ -124,14 +132,16 @@
 .story-project--reverse { grid-template-columns: minmax(260px, .72fr) minmax(0, 1.08fr); }
 .story-project--reverse .story-project-visual { order: 2; }
 .story-project--reverse .story-project-copy { order: 1; }
-.story-project-visual { position: relative; min-height: 280px; aspect-ratio: 1.37; overflow: visible; border: 1px solid var(--story-line); border-radius: 5px; background: radial-gradient(circle at 38% 38%, rgba(158,149,236,.18), transparent 42%), linear-gradient(135deg, rgba(255,255,255,.45), rgba(128,128,128,.06)); transform: perspective(1000px) rotateY(-2deg); transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.story-project-visual { --project-default-tilt: -2deg; position: relative; min-height: 280px; aspect-ratio: 1.37; overflow: visible; border: 1px solid var(--story-line); border-radius: 5px; background: radial-gradient(circle at 38% 38%, rgba(158,149,236,.18), transparent 42%), linear-gradient(135deg, rgba(255,255,255,.45), rgba(128,128,128,.06)); transform-style: preserve-3d; transform: perspective(1000px) rotateX(var(--project-tilt-x, 0deg)) rotateY(calc(var(--project-tilt-y, 0deg) + var(--project-default-tilt))); transition: transform .6s cubic-bezier(.2,.7,.2,1); }
 .dark .story-project-visual { background: radial-gradient(circle at 38% 38%, rgba(158,149,236,.18), transparent 42%), linear-gradient(135deg, rgba(46,46,50,.8), rgba(28,28,30,.6)); }
-.story-project--reverse .story-project-visual { transform: perspective(1000px) rotateY(2deg); }
-.story-project:hover .story-project-visual { transform: perspective(1000px) rotateY(0) rotateX(1deg) translateY(-5px); }
-.story-project-frame { position: absolute; z-index: 0; inset: 14px -14px -14px 14px; border: 1px dashed var(--story-line); border-radius: 5px; transition: transform .6s ease; }
-.story-project:hover .story-project-frame { transform: translate(7px, -7px); }
-.story-project-image { z-index: 1; border-radius: 4px; object-fit: cover; transition: transform .8s cubic-bezier(.2,.7,.2,1), filter .6s ease; }
-.story-project:hover .story-project-image { transform: scale(1.035); filter: saturate(1.08); }
+.story-project--reverse .story-project-visual { --project-default-tilt: 2deg; }
+.story-project-visual:before { position: absolute; z-index: 2; inset: 0; border-radius: inherit; content: ''; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--project-light-x, 50%) var(--project-light-y, 45%), rgba(255,255,255,.25), transparent 45%); transition: opacity .3s ease; }
+.story-project:hover .story-project-visual:before { opacity: 1; }
+.story-project:hover .story-project-visual { transform: perspective(1000px) rotateX(calc(var(--project-tilt-x, 0deg) + 1deg)) rotateY(var(--project-tilt-y, 0deg)) translateY(-5px); }
+.story-project-frame { position: absolute; z-index: 0; inset: 14px -14px -14px 14px; border: 1px dashed var(--story-line); border-radius: 5px; transform: translateZ(-16px); transition: transform .6s ease; }
+.story-project:hover .story-project-frame { transform: translate(7px, -7px) translateZ(-16px); }
+.story-project-image { z-index: 1; border-radius: 4px; object-fit: cover; transform: translateZ(8px); transition: transform .8s cubic-bezier(.2,.7,.2,1), filter .6s ease; }
+.story-project:hover .story-project-image { transform: scale(1.035) translateZ(14px); filter: saturate(1.08); }
 .story-project-placeholder { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; color: var(--story-muted); background: radial-gradient(circle at 50% 40%, var(--story-accent-soft), transparent 55%), repeating-linear-gradient(135deg, transparent 0 14px, rgba(120,120,120,.045) 14px 15px); }
 .story-project-placeholder span { position: absolute; top: 17px; left: 20px; font: 500 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .story-project-placeholder i { color: var(--story-accent); font-size: 76px; font-style: normal; animation: orbit-breathe 5s ease-in-out infinite; }
@@ -290,6 +300,7 @@
 @media (prefers-reduced-motion: reduce) {
   .story-progress span, .story-orbit-backdrop, .story-orbit-object, .story-orbit-ring, .story-orbit-core, .story-orbit-node, .story-orbit-note, .story-ribbon-track, .story-about-visual-orbit, .story-project-placeholder i { animation: none !important; }
   .story-reveal, .story-project-visual, .story-project-image, .story-project-frame, .story-certificate-card, .story-certificate-card:before, .story-skill-cloud span { transition: none !important; }
+  .story-sketchfab-shell, .story-orbit-stage:hover .story-sketchfab-shell { transition: none !important; transform: translate(-50%, -50%) translateZ(44px); }
   .motion-ready .story-reveal:not(.is-visible) { opacity: 1; transform: none; }
   .story-skill-cloud span:nth-child(n) { transform: none; }
   .story-ribbon-track { animation: none !important; }

@@ -10,56 +10,85 @@ function valuesFrom(items: string[]) {
   return Array.from(new Set(items.flatMap((item) => item.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean))));
 }
 
-function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
-  const [portraitFailed, setPortraitFailed] = useState(false);
-  const initials = data.profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-
+function OrbitScene({ projectCount, certificateCount, skillCount }: { projectCount: number; certificateCount: number; skillCount: number }) {
   return (
-    <div
-      className="story-orbit-stage"
-      role="img"
-      aria-label="Animation en trois dimensions représentant le parcours et les réalisations. Déplace le pointeur pour la faire pivoter."
-      onPointerMove={(event) => {
-        if (event.pointerType === 'touch') return;
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-        event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 13}deg`);
-        event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 13}deg`);
-      }}
-      onPointerLeave={(event) => {
-        event.currentTarget.style.setProperty('--pointer-tilt-x', '0deg');
-        event.currentTarget.style.setProperty('--pointer-tilt-y', '0deg');
-      }}
-    >
-      <div className="story-orbit-backdrop" />
-      <div className="story-orbit-grid" />
-      <div className="story-orbit-object" aria-hidden="true">
-        <span className="story-orbit-ring story-orbit-ring--one" />
-        <span className="story-orbit-ring story-orbit-ring--two" />
-        <span className="story-orbit-ring story-orbit-ring--three" />
-        <span className="story-orbit-axis" />
-        <span className="story-orbit-core">{data.profile.portraitUrl && !portraitFailed ? <Image src={data.profile.portraitUrl} alt="" fill sizes="150px" className="story-orbit-portrait" unoptimized onError={() => setPortraitFailed(true)} /> : <span>{initials || '✦'}</span>}</span>
-        <span className="story-orbit-node story-orbit-node--one" />
-        <span className="story-orbit-node story-orbit-node--two" />
-        <span className="story-orbit-node story-orbit-node--three" />
+    <figure className="story-orbit-figure">
+      <div
+        className="story-orbit-stage"
+        role="group"
+        aria-label="Scène interactive en trois dimensions. Fais glisser le modèle pour le faire pivoter."
+        onPointerMove={(event) => {
+          if (event.pointerType === 'touch') return;
+          const bounds = event.currentTarget.getBoundingClientRect();
+          const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+          const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 13}deg`);
+          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 13}deg`);
+        }}
+        onPointerLeave={(event) => {
+          event.currentTarget.style.setProperty('--pointer-tilt-x', '0deg');
+          event.currentTarget.style.setProperty('--pointer-tilt-y', '0deg');
+        }}
+      >
+        <div className="story-orbit-backdrop" />
+        <div className="story-orbit-grid" />
+        <div className="story-orbit-object" aria-hidden="true">
+          <span className="story-orbit-ring story-orbit-ring--one" />
+          <span className="story-orbit-ring story-orbit-ring--two" />
+          <span className="story-orbit-ring story-orbit-ring--three" />
+          <span className="story-orbit-axis" />
+          <span className="story-orbit-node story-orbit-node--one" />
+          <span className="story-orbit-node story-orbit-node--two" />
+          <span className="story-orbit-node story-orbit-node--three" />
+        </div>
+        <div className="story-sketchfab-shell">
+          <iframe
+            title="Modèle 3D interactif Cyber Orb sur Sketchfab"
+            src="https://sketchfab.com/models/8a81aa847da74a5cb36bd8ba13f6ae5e/embed?autostart=1&autospin=0.14&dnt=1&scrollwheel=0&ui_theme=dark"
+            allow="autoplay; fullscreen; xr-spatial-tracking"
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+          <span className="story-sketchfab-label">OBJET 3D / INTERACTIF</span>
+        </div>
+        <div className="story-orbit-note story-orbit-note--top"><span>01</span> Parcours en mouvement</div>
+        <div className="story-orbit-note story-orbit-note--bottom"><span>02</span> Preuves concrètes</div>
+        <div className="story-orbit-counts">
+          <div><strong>{projectCount.toString().padStart(2, '0')}</strong><span>projets</span></div>
+          <div><strong>{certificateCount.toString().padStart(2, '0')}</strong><span>certificats</span></div>
+          <div><strong>{skillCount.toString().padStart(2, '0')}</strong><span>compétences</span></div>
+        </div>
+        <span className="story-orbit-caption">ESPACE PERSONNEL · NUMÉRIQUE</span>
       </div>
-      <div className="story-orbit-note story-orbit-note--top"><span>01</span> Parcours en mouvement</div>
-      <div className="story-orbit-note story-orbit-note--bottom"><span>02</span> Preuves concrètes</div>
-      <div className="story-orbit-counts">
-        <div><strong>{projectCount.toString().padStart(2, '0')}</strong><span>projets</span></div>
-        <div><strong>{certificateCount.toString().padStart(2, '0')}</strong><span>certificats</span></div>
-        <div><strong>{skillCount.toString().padStart(2, '0')}</strong><span>compétences</span></div>
-      </div>
-      <span className="story-orbit-caption">ESPACE PERSONNEL · NUMÉRIQUE</span>
-    </div>
+      <figcaption className="story-model-credit">Modèle « Cyber Orb » par <a href="https://sketchfab.com/3d-models/cyber-orb-8a81aa847da74a5cb36bd8ba13f6ae5e" target="_blank" rel="noreferrer">Tycho Magnetic Anomaly</a> · licence CC Attribution</figcaption>
+    </figure>
   );
 }
 
 function ProjectStory({ project, index }: { project: PortfolioProject; index: number }) {
   const [imageFailed, setImageFailed] = useState(false);
   return (
-    <Link href={`/projects/${project.id}`} className={`story-project story-project--${index % 2 ? 'reverse' : 'forward'} story-reveal`}>
+    <Link
+      href={`/projects/${project.id}`}
+      className={`story-project story-project--${index % 2 ? 'reverse' : 'forward'} story-reveal`}
+      onPointerMove={(event) => {
+        if (event.pointerType === 'touch') return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
+        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
+        event.currentTarget.style.setProperty('--project-tilt-x', `${-y * 6}deg`);
+        event.currentTarget.style.setProperty('--project-tilt-y', `${x * 6}deg`);
+        event.currentTarget.style.setProperty('--project-light-x', `${(x + 0.5) * 100}%`);
+        event.currentTarget.style.setProperty('--project-light-y', `${(y + 0.5) * 100}%`);
+      }}
+      onPointerLeave={(event) => {
+        event.currentTarget.style.setProperty('--project-tilt-x', '0deg');
+        event.currentTarget.style.setProperty('--project-tilt-y', '0deg');
+        event.currentTarget.style.setProperty('--project-light-x', '50%');
+        event.currentTarget.style.setProperty('--project-light-y', '45%');
+      }}
+    >
       <div className="story-project-visual">
         <span className="story-project-frame" />
         {project.imageUrl && !imageFailed ? (
@@ -172,7 +201,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
             <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
           </div>
         </div>
-        <div className="story-hero-art story-reveal"><OrbitScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
+        <div className="story-hero-art story-reveal"><OrbitScene projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
         <div className="story-side-label" aria-hidden="true">PORTFOLIO — {name ? name.toUpperCase() : 'DOSSIER PERSONNEL'}</div>
       </section>
 

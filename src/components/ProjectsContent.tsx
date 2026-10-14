@@ -83,7 +83,28 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
 
       {projects.length ? <div className="tech-project-grid">{projects.map((project, index) => {
         const technologies = project.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean);
-        return <Link key={project.id} href={`/projects/${project.id}`} className="tech-project-card project-reveal" style={{ transitionDelay: `${Math.min(index % 3, 2) * 90}ms` }}>
+        return <Link
+          key={project.id}
+          href={`/projects/${project.id}`}
+          className="tech-project-card project-reveal"
+          style={{ transitionDelay: `${Math.min(index % 3, 2) * 90}ms` }}
+          onPointerMove={(event) => {
+            if (event.pointerType === 'touch') return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const x = (event.clientX - bounds.left) / bounds.width;
+            const y = (event.clientY - bounds.top) / bounds.height;
+            event.currentTarget.style.setProperty('--card-tilt-x', `${(0.5 - y) * 7}deg`);
+            event.currentTarget.style.setProperty('--card-tilt-y', `${(x - 0.5) * 7}deg`);
+            event.currentTarget.style.setProperty('--card-pointer-x', `${x * 100}%`);
+            event.currentTarget.style.setProperty('--card-pointer-y', `${y * 100}%`);
+          }}
+          onPointerLeave={(event) => {
+            event.currentTarget.style.setProperty('--card-tilt-x', '0deg');
+            event.currentTarget.style.setProperty('--card-tilt-y', '0deg');
+            event.currentTarget.style.setProperty('--card-pointer-x', '50%');
+            event.currentTarget.style.setProperty('--card-pointer-y', '40%');
+          }}
+        >
           <ProjectImage project={project} index={index} />
           <div className="tech-project-copy"><p className="tech-project-meta"><span>ÉTUDE DE CAS / {String(index + 1).padStart(2, '0')}</span><span>{project.featured ? 'À LA UNE' : 'PROJET'}</span></p><h3>{project.title}<span aria-hidden="true"> ↗</span></h3><p className="tech-project-summary">{project.summary}</p>{technologies.length > 0 && <div className="tech-project-tags">{technologies.slice(0, 4).map((technology) => <span key={technology}>{technology}</span>)}</div>}</div>
         </Link>;
