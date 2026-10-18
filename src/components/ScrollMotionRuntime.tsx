@@ -33,8 +33,14 @@ export default function ScrollMotionRuntime() {
 
     root.classList.add('zip-motion-ready');
     document.querySelectorAll('.zip-reveal').forEach(reveal);
-    const mutations = new MutationObserver((records) => records.forEach((record) => record.addedNodes.forEach(revealTree)));
-    mutations.observe(document.body, { childList: true, subtree: true });
+    const mutations = new MutationObserver((records) => records.forEach((record) => {
+      if (record.type === 'attributes') {
+        if (record.target instanceof Element) reveal(record.target);
+        return;
+      }
+      record.addedNodes.forEach(revealTree);
+    }));
+    mutations.observe(document.body, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true });
 
     let frame = 0;
     const updateProgress = () => {
