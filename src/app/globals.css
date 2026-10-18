@@ -10,32 +10,32 @@
 @tailwind utilities;
 
 :root {
-  --portfolio-paper: #F2F0E9;
-  --portfolio-paper-deep: #E6E3D8;
-  --portfolio-ink: #0B0D10;
-  --portfolio-muted: #5B6270;
+  --portfolio-paper: #0B0D10;
+  --portfolio-paper-deep: #1B2027;
+  --portfolio-ink: #F2F0E9;
+  --portfolio-muted: #A7ABB2;
   --portfolio-accent: #C7F36B;
-  --portfolio-line: rgba(11, 13, 16, .14);
+  --portfolio-line: rgba(242, 240, 233, .14);
   --motion-ease: cubic-bezier(.2, .7, .2, 1);
   --motion-speed: 1;
-  --foreground-rgb: 11, 13, 16;
-  --background-rgb: 242, 240, 233;
+  --foreground-rgb: 242, 240, 233;
+  --background-rgb: 11, 13, 16;
 }
 
 .dark {
-  --portfolio-paper: #111316;
-  --portfolio-paper-deep: #1A1E22;
+  --portfolio-paper: #0B0D10;
+  --portfolio-paper-deep: #1B2027;
   --portfolio-ink: #F2F0E9;
   --portfolio-muted: #A7ABB2;
-  --portfolio-line: rgba(242, 240, 233, .16);
+  --portfolio-line: rgba(242, 240, 233, .14);
   --foreground-rgb: 242, 240, 233;
-  --background-rgb: 17, 19, 22;
+  --background-rgb: 11, 13, 16;
 }
 
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 88px;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html.dark {

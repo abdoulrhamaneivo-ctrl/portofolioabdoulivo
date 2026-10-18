@@ -54,6 +54,7 @@ export function normalizePortfolioData(value: unknown): PortfolioData {
   const accent = ['lime', 'mint', 'blue', 'coral'].includes(String(settingsSource.accent))
     ? settingsSource.accent as PortfolioAccent
     : emptyPortfolio.settings.accent;
+  const sceneMode = settingsSource.sceneMode === 'orbit' ? 'orbit' : 'layers';
   const depth = Number(settingsSource.sceneDepth);
   const motionSpeed = Number(settingsSource.motionSpeed);
 
@@ -79,6 +80,7 @@ export function normalizePortfolioData(value: unknown): PortfolioData {
     })),
     settings: {
       accent,
+      sceneMode,
       sceneDepth: Number.isFinite(depth) ? Math.max(0, Math.min(100, depth)) : emptyPortfolio.settings.sceneDepth,
       motionSpeed: Number.isFinite(motionSpeed) ? Math.max(0.65, Math.min(1.35, motionSpeed)) : emptyPortfolio.settings.motionSpeed,
     },

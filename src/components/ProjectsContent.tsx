@@ -84,7 +84,7 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
         </div>
         <div className="project-hero-console project-reveal" aria-hidden="true">
           <div className="project-console-top"><span>{sceneProject ? `PROJET / ${sceneProject.featured ? 'À LA UNE' : 'SÉLECTION'}` : 'ESPACE PROJETS / PRÊT'}</span><span>● {String(projects.length).padStart(2, '0')} PUBLICATION{projects.length === 1 ? '' : 'S'}</span></div>
-          <div className="project-console-graphic"><div className="project-console-grid" /><div className="project-console-orbit project-console-orbit-a" /><div className="project-console-orbit project-console-orbit-b" />
+          <div className="project-console-graphic"><div className="project-console-grid" /><div className="project-console-layer-stack" aria-hidden="true">{['Comprendre', 'Concevoir', 'Construire', 'Évaluer'].map((step, index) => <span key={step}>{`0${index + 1} · ${step.toUpperCase()}`}</span>)}</div>
             <div className="project-console-core">
               <span>ÉTUDE DE CAS / 01</span>
               <strong>{sceneProject?.title || 'Le prochain projet'}</strong>

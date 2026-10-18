@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PortfolioCertificate, PortfolioData, PortfolioProject } from '@/lib/portfolio';
@@ -22,66 +22,56 @@ function useReducedMotionFlag() {
   return reducedMotion;
 }
 
-function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
-  const [portraitFailed, setPortraitFailed] = useState(false);
+function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
+  const [expanded, setExpanded] = useState(false);
   const reducedMotion = useReducedMotionFlag();
-  const initials = data.profile.fullName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const sceneMode = data.settings.sceneMode;
+  const depth = Math.min(data.settings.sceneDepth / 54, 1.35);
+  const sections = [
+    { label: 'Mon profil', href: '#recit' },
+    { label: 'Projets', href: '#projets' },
+    { label: 'Parcours', href: '#parcours' },
+    { label: 'Compétences', href: '#competences' },
+    { label: 'Certificats', href: '#certificats' },
+    { label: 'Contact', href: '#contact' },
+  ];
 
   return (
-    <div className="story-orbit-figure">
+    <div className="story-zip-scene-wrap">
       <div
-        className="story-orbit-stage"
+        className={`story-zip-stage${sceneMode === 'layers' && expanded ? ' is-expanded' : ''}`}
         role="group"
-        aria-label="Fiche de profil en relief. Déplace le pointeur pour révéler les différentes couches."
+        aria-label={sceneMode === 'layers' ? 'Couches interactives de la démarche' : 'Navigation orbitale du portfolio'}
         onPointerMove={(event) => {
           if (event.pointerType !== 'mouse' || reducedMotion.current) return;
           const bounds = event.currentTarget.getBoundingClientRect();
           const x = (event.clientX - bounds.left) / bounds.width - 0.5;
           const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-          const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
-          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 16 * depth}deg`);
-          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 16 * depth}deg`);
-          event.currentTarget.style.setProperty('--profile-light-x', `${(x + 0.5) * 100}%`);
-          event.currentTarget.style.setProperty('--profile-light-y', `${(y + 0.5) * 100}%`);
+          event.currentTarget.style.setProperty('--scene-tilt-x', `${-y * 12 * depth}deg`);
+          event.currentTarget.style.setProperty('--scene-tilt-y', `${x * 18 * depth}deg`);
         }}
         onPointerLeave={(event) => {
-          event.currentTarget.style.setProperty('--pointer-tilt-x', '0deg');
-          event.currentTarget.style.setProperty('--pointer-tilt-y', '0deg');
-          event.currentTarget.style.setProperty('--profile-light-x', '50%');
-          event.currentTarget.style.setProperty('--profile-light-y', '45%');
+          event.currentTarget.style.setProperty('--scene-tilt-x', '0deg');
+          event.currentTarget.style.setProperty('--scene-tilt-y', '0deg');
         }}
       >
-        <div className="story-orbit-backdrop" />
-        <div className="story-orbit-grid" />
-        <div className="story-orbit-object" aria-hidden="true">
-          <span className="story-orbit-ring story-orbit-ring--one" />
-          <span className="story-orbit-ring story-orbit-ring--two" />
-          <span className="story-orbit-ring story-orbit-ring--three" />
-          <span className="story-orbit-axis" />
-          <span className="story-orbit-node story-orbit-node--one" />
-          <span className="story-orbit-node story-orbit-node--two" />
-          <span className="story-orbit-node story-orbit-node--three" />
-        </div>
-        <div className="story-profile-backplate" aria-hidden="true" />
-        <article className="story-profile-plate">
-          <div className="story-profile-topline"><span>IDENTITÉ NUMÉRIQUE / 01</span><span><i /> PROFIL</span></div>
-          <div className="story-profile-main">
-            <div className="story-profile-avatar">
-              {data.profile.portraitUrl && !portraitFailed ? <Image src={data.profile.portraitUrl} alt={data.profile.fullName ? `Portrait de ${data.profile.fullName}` : 'Portrait du profil'} fill sizes="72px" className="story-profile-portrait" unoptimized onError={() => setPortraitFailed(true)} /> : <span>{initials || '✦'}</span>}
-            </div>
-            <div className="story-profile-identity"><span>PORTFOLIO PERSONNEL</span><h2>{data.profile.fullName || 'Profil à compléter'}</h2><p>{data.profile.title || 'Parcours numérique en construction'}</p></div>
+        <span className="story-zip-scene-label">{sceneMode === 'layers' ? 'DÉMARCHE / 04 ÉTAPES' : 'NAVIGATION / 06 SECTIONS'}</span>
+        {sceneMode === 'layers' ? <div className="story-zip-rig story-zip-rig--layers" aria-hidden="true">
+          {['Comprendre', 'Concevoir', 'Construire', 'Évaluer'].map((step, index) => <div className="story-zip-layer" key={step} style={{ '--layer-z': `${(index - 1.5) * (expanded ? 120 : 42) * depth}px`, '--layer-opacity': `${0.55 + index * 0.15}` } as CSSProperties}>
+            <span>{String(index + 1).padStart(2, '0')} · {step.toUpperCase()}</span>
+            <strong>{step}</strong>
+            <small>{index === 0 ? data.profile.title || 'Profil en construction' : index === 1 ? `${projectCount.toString().padStart(2, '0')} projet${projectCount === 1 ? '' : 's'} présenté${projectCount === 1 ? '' : 's'}` : index === 2 ? `${skillCount.toString().padStart(2, '0')} savoir-faire documenté${skillCount === 1 ? '' : 's'}` : `${certificateCount.toString().padStart(2, '0')} preuve${certificateCount === 1 ? '' : 's'} publiée${certificateCount === 1 ? '' : 's'}`}</small>
+          </div>)}
+        </div> : <div className="story-zip-rig story-zip-rig--orbit">
+          <div className="story-zip-orbit-ring" aria-label="Sections à explorer" style={{ '--orbit-radius-config': `${190 * depth}px` } as CSSProperties}>
+            {sections.map((section, index) => <Link href={section.href} className="story-zip-orbit-node" key={section.href} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--orbit-radius))` }}>{section.label}</Link>)}
           </div>
-          <div className="story-profile-metrics">
-            <div><strong>{projectCount.toString().padStart(2, '0')}</strong><span>PROJETS</span></div>
-            <div><strong>{certificateCount.toString().padStart(2, '0')}</strong><span>CERTIFICATS</span></div>
-            <div><strong>{skillCount.toString().padStart(2, '0')}</strong><span>COMPÉTENCES</span></div>
-          </div>
-          <div className="story-profile-footer"><span>PARCOURS EN MOUVEMENT</span><span>● ACTUALISÉ</span></div>
-        </article>
-        <div className="story-orbit-note story-orbit-note--top"><span>01</span> Parcours en mouvement</div>
-        <div className="story-orbit-note story-orbit-note--bottom"><span>02</span> Preuves concrètes</div>
-        <span className="story-orbit-caption">ESPACE PERSONNEL · NUMÉRIQUE</span>
+        </div>}
+        <span className="story-zip-beam" aria-hidden="true" />
+        {sceneMode === 'layers' && <button className="story-zip-expand" type="button" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>{expanded ? 'Rassembler les couches' : 'Explorer les couches'} <span aria-hidden="true">↗</span></button>}
+        <span className="story-zip-scene-hint">{sceneMode === 'layers' ? 'Survole pour incliner · clique pour déployer' : 'Survole pour faire tourner · choisis une section'}</span>
       </div>
+      <div className="story-zip-scene-caption"><span>THE LIVING PORTFOLIO</span><span>{projectCount} projets · {certificateCount} certificats · {skillCount} compétences</span></div>
     </div>
   );
 }
@@ -289,6 +279,26 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     const featured = publishedCertificates.filter((item) => item.featured);
     return (featured.length ? featured : publishedCertificates).slice(0, 3);
   }, [publishedCertificates]);
+  const movingTopics = useMemo(() => {
+    const content = [
+      { title: data.profile.title || 'Mon profil', category: 'IDENTITÉ' },
+      ...publishedProjects.map((item) => ({ title: item.title, category: 'PROJET' })),
+      ...publishedCertificates.map((item) => ({ title: item.title, category: 'CERTIFICAT' })),
+      ...publishedJourney.map((item) => ({ title: item.title, category: item.category.toUpperCase() })),
+      ...publishedExperiments.map((item) => ({ title: item.title, category: 'LABORATOIRE' })),
+    ];
+    const fallback = [
+      { title: 'Projets', category: 'ÉTUDES DE CAS' },
+      { title: 'Parcours', category: 'ÉTAPES' },
+      { title: 'Compétences', category: 'PREUVES' },
+      { title: 'Certificats', category: 'APPRENTISSAGES' },
+      { title: 'Expérimentations', category: 'LABORATOIRE' },
+      { title: 'Contact', category: 'LA SUITE' },
+      { title: 'Curriculum vitæ', category: 'DOCUMENT' },
+    ];
+    const unique = content.filter((item, index, items) => items.findIndex((candidate) => candidate.title === item.title) === index);
+    return [...unique, ...fallback.filter((item) => !unique.some((candidate) => candidate.title === item.title))].slice(0, 8);
+  }, [data.profile.title, publishedProjects, publishedCertificates, publishedJourney, publishedExperiments]);
   const skills = useMemo(() => valuesFrom([
     ...publishedProjects.map((item) => item.technologies),
     ...publishedCertificates.map((item) => item.skills),
@@ -361,11 +371,17 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
             <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
           </div>
         </div>
-        <div className="story-hero-art story-reveal"><OrbitScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
+        <div className="story-hero-art story-reveal"><PortfolioScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
         <div className="story-side-label" aria-hidden="true">PORTFOLIO — {name ? name.toUpperCase() : 'DOSSIER PERSONNEL'}</div>
       </section>
 
       <div className="story-ribbon" aria-hidden="true"><div className="story-ribbon-track"><span>CONCEVOIR</span><i>✳</i><span>APPRENDRE</span><i>✳</i><span>EXPÉRIMENTER</span><i>✳</i><span>CONSTRUIRE</span><i>✳</i><span>CONCEVOIR</span><i>✳</i><span>APPRENDRE</span><i>✳</i><span>EXPÉRIMENTER</span><i>✳</i><span>CONSTRUIRE</span><i>✳</i></div></div>
+
+      <section className="story-tile-marquee" aria-hidden="true">
+        {[movingTopics, [...movingTopics].reverse()].map((row, rowIndex) => <div className={`story-tile-track${rowIndex ? ' is-reverse' : ''}`} key={rowIndex}>
+          {[...row, ...row].map((item, index) => <div className="story-tile-card" key={`${rowIndex}:${index}`}><span>{item.category}</span><i>{String((index % row.length) + 1).padStart(2, '0')}</i><strong>{item.title}</strong></div>)}
+        </div>)}
+      </section>
 
       <section className="story-section story-about" id="recit">
         <div className="story-section-aside story-reveal"><span>02 / LE RÉCIT</span><span className="story-aside-rule" /><span>Au-delà du titre</span></div>
@@ -394,24 +410,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
 
       {publishedExperiments.length > 0 && <section className="story-lab-section" id="laboratoire">
         <div className="story-lab-heading"><div><p className="story-kicker">05 / CE QUE J’EXPLORE</p><h2>Des idées encore en mouvement.</h2><p>Prototypes et questions ouvertes, gardés distincts des projets finalisés.</p></div><Link href="/experiments">Explorer le laboratoire <span aria-hidden="true">⟶</span></Link></div>
-        <div className="story-lab-grid">{publishedExperiments.slice(0, 3).map((experiment, index) => <Link className="story-lab-card" href="/experiments" key={experiment.id} style={{ animationDelay: `${index * 80}ms` }}
-          onPointerMove={(event) => {
-            if (event.pointerType !== 'mouse' || reducedMotion.current) return;
-            const bounds = event.currentTarget.getBoundingClientRect();
-            const x = (event.clientX - bounds.left) / bounds.width - .5;
-            const y = (event.clientY - bounds.top) / bounds.height - .5;
-            const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
-            event.currentTarget.style.setProperty('--lab-tilt-x', `${-y * 12 * depth}deg`);
-            event.currentTarget.style.setProperty('--lab-tilt-y', `${x * 12 * depth}deg`);
-            event.currentTarget.style.setProperty('--lab-light-x', `${(x + .5) * 100}%`);
-            event.currentTarget.style.setProperty('--lab-light-y', `${(y + .5) * 100}%`);
-          }}
-          onPointerLeave={(event) => {
-            event.currentTarget.style.setProperty('--lab-tilt-x', '0deg');
-            event.currentTarget.style.setProperty('--lab-tilt-y', '0deg');
-            event.currentTarget.style.setProperty('--lab-light-x', '50%');
-            event.currentTarget.style.setProperty('--lab-light-y', '50%');
-          }}>
+        <div className="story-lab-grid">{publishedExperiments.slice(0, 3).map((experiment, index) => <Link className="story-lab-card" href="/experiments" key={experiment.id} style={{ animationDelay: `${index * 80}ms` }}>
           <div><span>{experiment.category || 'EXPLORATION'}</span><span className="story-lab-state"><i />{experiment.status || 'En cours'}</span></div>
           <span className="story-lab-mark" aria-hidden="true">{String(index + 1).padStart(2, '0')}<i>✳</i></span>
           <h3>{experiment.title}</h3>{experiment.description && <p>{experiment.description}</p>}

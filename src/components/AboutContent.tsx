@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import type { PortfolioData } from '@/lib/portfolio';
 import { safeExternalUrl } from '@/lib/urls';
+import AboutPortraitCard from './AboutPortraitCard';
 
 function splitValues(value: string) {
   return Array.from(new Set(value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean)));
@@ -9,7 +9,6 @@ function splitValues(value: string) {
 
 export default function AboutContent({ data }: { data: PortfolioData }) {
   const name = data.profile.fullName.trim();
-  const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   const skills = Array.from(new Set([
     ...data.projects.filter((project) => project.published).flatMap((project) => splitValues(project.technologies)),
     ...data.certificates.filter((certificate) => certificate.published).flatMap((certificate) => splitValues(certificate.skills)),
@@ -41,15 +40,7 @@ export default function AboutContent({ data }: { data: PortfolioData }) {
         </div>
       </section>
 
-      <aside className="portfolio-about-card">
-        <div className="portfolio-about-avatar">
-          {data.profile.portraitUrl ? <Image src={data.profile.portraitUrl} alt={name ? `Portrait de ${name}` : 'Portrait du profil'} fill sizes="120px" unoptimized /> : <span>{initials || '✳'}</span>}
-        </div>
-        <p>IDENTITÉ NUMÉRIQUE / 01</p>
-        <h2>{name || 'Profil personnel'}</h2>
-        <span>{data.profile.title || 'Parcours numérique en construction'}</span>
-        <div className="portfolio-about-statline"><span><strong>{data.projects.filter((item) => item.published).length.toString().padStart(2, '0')}</strong> PROJETS</span><span><strong>{data.certificates.filter((item) => item.published).length.toString().padStart(2, '0')}</strong> PREUVES</span></div>
-      </aside>
+      <AboutPortraitCard name={name} title={data.profile.title} portraitUrl={data.profile.portraitUrl} projectCount={data.projects.filter((item) => item.published).length} certificateCount={data.certificates.filter((item) => item.published).length} />
     </div>
 
     <section className="portfolio-about-timeline" id="parcours">

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
-import ThemeToggle from './ThemeToggle';
 import { globalConfig } from '@/config/global';
 
 export default function Navbar() {
@@ -46,7 +45,6 @@ export default function Navbar() {
               {item.title}
             </Link>
           ))}
-          <ThemeToggle />
         </nav>
         {isMenuOpen && <button className="portfolio-nav-backdrop" aria-label="Fermer la navigation" onClick={() => setIsMenuOpen(false)} />}
       </div>

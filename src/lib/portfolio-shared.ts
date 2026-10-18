@@ -63,6 +63,7 @@ export type PortfolioAccent = 'lime' | 'mint' | 'blue' | 'coral';
 
 export type PortfolioSettings = {
   accent: PortfolioAccent;
+  sceneMode: 'layers' | 'orbit';
   sceneDepth: number;
   motionSpeed: number;
 };
@@ -83,7 +84,7 @@ export const emptyPortfolio: PortfolioData = {
   projects: [],
   certificates: [],
   experiments: [],
-  settings: { accent: 'lime', sceneDepth: 54, motionSpeed: 1 },
+  settings: { accent: 'lime', sceneMode: 'layers', sceneDepth: 54, motionSpeed: 1 },
   cv: { fileUrl: '', fileName: '', updatedAt: '' },
 };
 
