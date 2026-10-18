@@ -1,18 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowUpRight } from 'lucide-react';
 import type { PortfolioJourneyItem, PortfolioProject } from '@/lib/portfolio';
-
-function ProjectImage({ project, index }: { project: PortfolioProject; index: number }) {
-  const [failed, setFailed] = useState(false);
-  return <div className="zip-project-image">
-    {project.imageUrl && !failed ? <Image src={project.imageUrl} alt={`Aperçu du projet ${project.title}`} fill sizes="(max-width: 720px) 100vw, (max-width: 1000px) 50vw, 33vw" unoptimized onError={() => setFailed(true)} /> : <div className="zip-project-art" aria-hidden="true"><span>{`{ ${String(index + 1).padStart(2, '0')} }`}</span><i /><b /></div>}
-    <span className="zip-project-image-index">PROJET / {String(index + 1).padStart(2, '0')}</span>
-  </div>;
-}
+import ProjectMediaFrame from '@/components/ProjectMediaFrame';
 
 export default function ProjectsContent({ projects, journey }: { projects: PortfolioProject[]; journey: PortfolioJourneyItem[] }) {
   const contributions = journey.filter((item) => item.published && item.category === 'Contribution');
@@ -23,7 +14,7 @@ export default function ProjectsContent({ projects, journey }: { projects: Portf
 
     <section className="zip-project-gallery" id="realisations"><div className="zip-subheading zip-reveal"><h2>Réalisations sélectionnées</h2><span>{String(projects.length).padStart(2, '0')} ÉTUDES DE CAS</span></div>
       {projects.length ? <div className="zip-project-grid">{projects.map((project, index) => <Link href={`/projects/${project.id}`} className="zip-project-card zip-reveal" key={project.id}>
-        <ProjectImage project={project} index={index} />
+        <ProjectMediaFrame title={project.title} imageUrl={project.imageUrl} videoUrl={project.videoUrl} index={index} />
         <div className="zip-project-copy"><p>{project.featured ? 'À LA UNE' : 'ÉTUDE DE CAS'} <ArrowUpRight size={14} /></p><h3>{project.title}</h3>{project.summary && <span>{project.summary}</span>}{project.technologies && <div className="zip-project-tags">{project.technologies.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 4).map((item) => <span key={item}>{item}</span>)}</div>}</div>
       </Link>)}</div> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Aucune étude de cas autonome n’est publiée.</h3><p>Les contributions déjà documentées dans le parcours restent accessibles ci-dessous.</p></div></div>}
     </section>

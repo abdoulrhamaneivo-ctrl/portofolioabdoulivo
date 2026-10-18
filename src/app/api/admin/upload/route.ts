@@ -21,12 +21,14 @@ const mimeByExtension: Record<string, { mime: string; extension: string }> = {
   doc: { mime: 'application/msword', extension: '.doc' },
   docx: { mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', extension: '.docx' },
   odt: { mime: 'application/vnd.oasis.opendocument.text', extension: '.odt' },
+  mp4: { mime: 'video/mp4', extension: '.mp4' },
+  webm: { mime: 'video/webm', extension: '.webm' },
 };
 
 const allowedTypes: Record<string, Set<string>> = {
   certificate: new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'application/msword', mimeByExtension.docx.mime, mimeByExtension.odt.mime]),
   cv: new Set(['application/pdf', 'application/msword', mimeByExtension.docx.mime, mimeByExtension.odt.mime]),
-  project: new Set(['image/jpeg', 'image/png', 'image/webp']),
+  project: new Set(['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']),
   profile: new Set(['image/jpeg', 'image/png', 'image/webp']),
 };
 
@@ -67,10 +69,15 @@ export async function POST(request: NextRequest) {
       ? 'Format accepté pour le CV : PDF, DOC, DOCX ou ODT.'
       : kind === 'certificate'
         ? 'Format accepté : PDF, DOC, DOCX, ODT ou image JPG, PNG, WebP.'
-        : 'Format accepté : image JPG, PNG ou WebP.', 415);
+        : kind === 'project'
+          ? 'Format accepté pour un projet : image JPG, PNG, WebP ou vidéo MP4/WebM.'
+          : 'Format accepté pour le portrait : image JPG, PNG ou WebP.', 415);
   }
 
-  const fileName = `${kind}-${randomUUID()}${fileType?.extension || Object.values(mimeByExtension).find((entry) => entry.mime === mime)?.extension}`;
+  const canonicalExtension = Object.values(mimeByExtension).find((entry) => entry.mime === mime)?.extension;
+  if (!canonicalExtension) return jsonError('Format de fichier invalide.', 415);
+
+  const fileName = `${kind}-${randomUUID()}${canonicalExtension}`;
   const content = new Uint8Array(await file.arrayBuffer());
 
   const missingStorageConfig = ['AWS_ENDPOINT_URL_S3', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']

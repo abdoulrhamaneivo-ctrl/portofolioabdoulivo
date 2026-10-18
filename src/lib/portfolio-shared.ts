@@ -20,6 +20,7 @@ export type PortfolioProject = {
   proofUrl: string;
   link: string;
   imageUrl: string;
+  videoUrl: string;
   published: boolean;
   featured: boolean;
 };

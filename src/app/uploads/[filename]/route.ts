@@ -14,13 +14,15 @@ const contentTypes: Record<string, string> = {
   doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   odt: 'application/vnd.oasis.opendocument.text',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
 };
 
-const inlineExtensions = new Set(['pdf', 'jpg', 'png', 'webp']);
+const inlineExtensions = new Set(['pdf', 'jpg', 'png', 'webp', 'mp4', 'webm']);
 
 export async function GET(_request: Request, { params }: { params: Promise<{ filename: string }> }) {
   const { filename } = await params;
-  if (!/^(certificate|cv|project|profile)-[0-9a-f-]+\.(pdf|jpg|png|webp|doc|docx|odt)$/.test(filename)) {
+  if (!/^(certificate|cv|project|profile)-[0-9a-f-]+\.(pdf|jpg|png|webp|doc|docx|odt|mp4|webm)$/.test(filename)) {
     return new NextResponse('Fichier introuvable.', { status: 404 });
   }
 

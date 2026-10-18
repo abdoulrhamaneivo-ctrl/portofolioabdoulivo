@@ -24,16 +24,18 @@ import {
   ShieldCheck,
   Upload,
   UserRound,
+  Video,
   X,
 } from 'lucide-react';
 import { portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProject } from '@/lib/portfolio-shared';
+import ProjectMediaFrame from '@/components/ProjectMediaFrame';
 
 type Section = 'overview' | 'profile' | 'skills' | 'journey' | 'projects' | 'certificates' | 'experiments' | 'cv' | 'studio';
 type Session = { configured: boolean; authenticated: boolean };
 
 const emptyProject = (): PortfolioProject => ({
   id: crypto.randomUUID(), title: '', summary: '', problem: '', contribution: '', solution: '',
-  technologies: '', proofUrl: '', link: '', imageUrl: '', published: false, featured: false,
+  technologies: '', proofUrl: '', link: '', imageUrl: '', videoUrl: '', published: false, featured: false,
 });
 
 const emptyCertificate = (): PortfolioCertificate => ({
@@ -193,6 +195,21 @@ export default function AdminPanel() {
       const uploaded = await uploadFile(file, 'project');
       setProjectDraft({ ...projectDraft, imageUrl: uploaded.url });
       setNotice('Image ajoutée. Enregistre le projet pour publier le changement.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Envoi impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadProjectVideo(file?: File) {
+    if (!file || !projectDraft) return;
+    setBusy(true);
+    setError('');
+    try {
+      const uploaded = await uploadFile(file, 'project');
+      setProjectDraft({ ...projectDraft, videoUrl: uploaded.url });
+      setNotice('Vidéo ajoutée. Enregistre le projet pour publier le changement.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Envoi impossible.');
     } finally {
@@ -413,8 +430,13 @@ export default function AdminPanel() {
                     <Field label="Lien vers le projet"><input className="admin-input" type="url" value={projectDraft.link} onChange={(e) => setProjectDraft({ ...projectDraft, link: e.target.value })} placeholder="https://…" /></Field>
                     <Field label="Preuve du travail"><input className="admin-input" type="url" value={projectDraft.proofUrl} onChange={(e) => setProjectDraft({ ...projectDraft, proofUrl: e.target.value })} placeholder="Dépôt GitHub, démonstration…" /></Field>
                     <Field label="Image du projet" hint="PNG, JPG ou WebP · 4 Mo maximum.">
-                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Choisir une image<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadProjectImage(file); }} /></label>{projectDraft.imageUrl && <span className="truncate text-xs text-emerald-700">Image ajoutée</span>}</div>
+                      <div className="flex items-center gap-3"><label className="admin-upload-button"><Upload size={15} />Choisir une image<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadProjectImage(file); }} /></label>{projectDraft.imageUrl && <><span className="truncate text-xs text-emerald-700">Image ajoutée</span><button type="button" className="admin-row-action" onClick={() => setProjectDraft({ ...projectDraft, imageUrl: '' })}>Retirer</button></>}</div>
                     </Field>
+                    <Field label="Vidéo de présentation" hint="MP4 ou WebM · 4 Mo maximum. Pour un clip plus long, colle un lien YouTube, Vimeo ou MP4/WebM direct.">
+                      <div className="flex flex-wrap items-center gap-3"><label className="admin-upload-button"><Video size={15} />Ajouter un clip<input type="file" className="sr-only" accept="video/mp4,video/webm,.mp4,.webm" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadProjectVideo(file); }} /></label>{projectDraft.videoUrl && <><span className="truncate text-xs text-emerald-700">Vidéo ajoutée</span><button type="button" className="admin-row-action" onClick={() => setProjectDraft({ ...projectDraft, videoUrl: '' })}>Retirer</button></>}</div>
+                    </Field>
+                    <div className="col-span-full"><Field label="Ou lien vidéo" hint="Lien public YouTube, Vimeo ou URL directe terminant par .mp4 ou .webm. La vidéo se charge seulement quand le visiteur la lance."><input className="admin-input" type="url" value={projectDraft.videoUrl.startsWith('/uploads/') ? '' : projectDraft.videoUrl} onChange={(e) => setProjectDraft({ ...projectDraft, videoUrl: e.target.value })} placeholder="https://youtu.be/… ou https://…/demo.mp4" /></Field></div>
+                    {(projectDraft.imageUrl || projectDraft.videoUrl) && <div className="col-span-full"><p className="admin-eyebrow mb-2">APERÇU DU CADRE MÉDIA</p><ProjectMediaFrame title={projectDraft.title || 'Projet'} imageUrl={projectDraft.imageUrl} videoUrl={projectDraft.videoUrl} index={0} interactive /></div>}
                   </div>
                   <div className="admin-check-row"><label><input type="checkbox" checked={projectDraft.published} onChange={(e) => setProjectDraft({ ...projectDraft, published: e.target.checked })} />Publier sur le site</label><label><input type="checkbox" checked={projectDraft.featured} onChange={(e) => setProjectDraft({ ...projectDraft, featured: e.target.checked })} />Mettre en avant</label></div>
                   <div className="admin-card-footer"><button className="admin-secondary" onClick={() => setProjectDraft(null)}>Annuler</button><button className="admin-primary" disabled={busy || !projectDraft.title.trim()} onClick={() => {

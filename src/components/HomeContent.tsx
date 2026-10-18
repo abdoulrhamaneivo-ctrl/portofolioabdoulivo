@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Award, Code2, ExternalLink, Layers3, Network, PanelsTopLeft } from 'lucide-react';
 import type { PortfolioCertificate, PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
 import JourneyTimeline from '@/components/JourneyTimeline';
+import ProjectMediaFrame from '@/components/ProjectMediaFrame';
 import { safeExternalUrl } from '@/lib/urls';
 
 function list(value: string) {
@@ -104,7 +105,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       <div className="zip-container">
         <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PROJETS <span>/</span> 01</p><h2>Des réalisations<br /><em>à voir en clair.</em></h2></div><p>Le contexte, ma contribution et les outils apparaissent directement ici, sans devoir ouvrir chaque fiche.</p><Link className="zip-text-link" href="/projects">Tous les projets <ArrowUpRight size={16} /></Link></header>
         {projects.length ? <div className="zip-project-grid">{projects.slice(0, 3).map((project, index) => <article className="zip-project-card zip-home-project-card zip-reveal" key={project.id}>
-          <div className="zip-project-image">{project.imageUrl ? <Image src={project.imageUrl} alt={`Aperçu de ${project.title}`} fill sizes="(max-width: 720px) 100vw, 33vw" unoptimized /> : <div className="zip-project-art" aria-hidden="true"><span>{`{ ${String(index + 1).padStart(2, '0')} }`}</span><i /><b /></div>}<span className="zip-project-image-index">PROJET / {String(index + 1).padStart(2, '0')}</span></div>
+          <ProjectMediaFrame title={project.title} imageUrl={project.imageUrl} videoUrl={project.videoUrl} index={index} />
           <div className="zip-project-copy"><p>{project.featured ? 'PROJET À LA UNE' : 'ÉTUDE DE CAS'} <span>{project.featured ? '✳' : String(index + 1).padStart(2, '0')}</span></p><h3><Link href={`/projects/${project.id}`}>{project.title}</Link></h3>
             {project.summary && <span className="zip-home-project-summary">{project.summary}</span>}
             <div className="zip-home-project-facts">{project.problem && <div><strong>Le besoin</strong><p>{project.problem}</p></div>}{project.contribution && <div><strong>Ma contribution</strong><p>{project.contribution}</p></div>}{project.solution && <div><strong>La solution</strong><p>{project.solution}</p></div>}</div>
@@ -139,6 +140,16 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
           ['03', 'Construire', 'Choisir les outils adaptés et avancer par étapes lisibles.'],
           ['04', 'Évaluer', 'Vérifier ce qui fonctionne et documenter ce qui reste à améliorer.'],
         ].map(([index, title, copy]) => <article className="zip-approach-card zip-reveal" key={index}><span>{index} <i className="zip-line" /></span><h3>{title}</h3><p>{copy}</p></article>)}
+      </div>
+    </section>
+
+    <section className="zip-visual-report" aria-labelledby="zip-visual-title">
+      <div className="zip-container">
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">UNIVERS NUMÉRIQUE <span>/</span> EN IMAGES</p><h2 id="zip-visual-title">Les idées prennent<br /><em>forme et matière.</em></h2></div><p>Des images d’ambiance donnent un aperçu des domaines qui m’intéressent. Les photos et vidéos de mes propres réalisations seront ajoutées sur chaque fiche projet.</p></header>
+        <div className="zip-visual-grid">
+          <figure className="zip-visual-card zip-reveal"><div className="zip-visual-photo"><Image src="/assets/images/editorial/ambient-code.webp" alt="Mains au clavier devant un écran de code" fill sizes="(max-width: 720px) 100vw, 58vw" unoptimized /><span>01 / CODE & CONCEPTION</span></div><figcaption><strong>Développement numérique</strong><a href="https://www.pexels.com/photo/programming-code-on-laptop-with-developer-hands-37880001/" target="_blank" rel="noreferrer">Photo d’Alicia Christin Gerald · Pexels <ArrowUpRight size={13} /></a></figcaption></figure>
+          <figure className="zip-visual-card zip-reveal" style={{ '--delay': '90ms' } as CSSProperties}><div className="zip-visual-photo"><Image src="/assets/images/editorial/ambient-network.webp" alt="Équipements réseau et serveurs éclairés en bleu" fill sizes="(max-width: 720px) 100vw, 42vw" unoptimized /><span>02 / INFRASTRUCTURE</span></div><figcaption><strong>Réseaux & services numériques</strong><a href="https://www.pexels.com/photo/network-rack-17323801/" target="_blank" rel="noreferrer">Photo de Panumas Nikhomkhai · Pexels <ArrowUpRight size={13} /></a></figcaption></figure>
+        </div>
       </div>
     </section>
 

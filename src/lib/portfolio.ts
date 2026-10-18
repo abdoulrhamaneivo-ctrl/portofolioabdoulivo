@@ -64,7 +64,7 @@ export function normalizePortfolioData(value: unknown): PortfolioData {
       return { ...result, category: ['Formation', 'Expérience', 'Contribution'].includes(result.category) ? result.category as PortfolioJourneyItem['category'] : 'Formation', published: booleanValue((item as Record<string, unknown>).published) };
     }),
     projects: listOf(saved.projects, (item) => ({
-      ...textFields<PortfolioProject>(item, { id: 100, title: 240, summary: 4000, problem: 8000, contribution: 8000, solution: 8000, technologies: 2000, proofUrl: 2000, link: 2000, imageUrl: 2000 }),
+      ...textFields<PortfolioProject>(item, { id: 100, title: 240, summary: 4000, problem: 8000, contribution: 8000, solution: 8000, technologies: 2000, proofUrl: 2000, link: 2000, imageUrl: 2000, videoUrl: 2000 }),
       published: booleanValue((item as Record<string, unknown>).published),
       featured: booleanValue((item as Record<string, unknown>).featured),
     })),
