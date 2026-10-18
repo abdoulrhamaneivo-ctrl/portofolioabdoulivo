@@ -59,6 +59,7 @@ export default function ScrollMotionRuntime() {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
+        document.querySelectorAll<HTMLElement>('.zip-reveal:not(.is-visible)').forEach((node) => reveal(node));
         const range = document.documentElement.scrollHeight - window.innerHeight;
         progressRef.current?.style.setProperty('transform', `scaleX(${range > 0 ? Math.min(1, window.scrollY / range) : 0})`);
       });

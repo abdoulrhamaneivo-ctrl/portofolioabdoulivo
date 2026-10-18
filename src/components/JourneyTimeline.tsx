@@ -13,14 +13,16 @@ function toneFor(category: PortfolioJourneyItem['category']) {
 
 export default function JourneyTimeline({ items, variant = 'compact' }: { items: PortfolioJourneyItem[]; variant?: 'compact' | 'full' }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [revealedIds, setRevealedIds] = useState<Set<string>>(() => new Set());
   const isFull = variant === 'full';
 
   return <ol className={isFull ? 'zip-about-timeline' : 'zip-timeline'} aria-label="Étapes du parcours">
     {items.map((item, index) => {
       const open = openId === item.id;
+      const revealed = revealedIds.has(item.id) || open;
       const detailId = `journey-detail-${item.id}`;
       return <li
-        className={`${isFull ? 'zip-about-step' : 'zip-timeline-item'} zip-reveal${open ? ' is-open' : ''}`}
+        className={`${isFull ? 'zip-about-step' : 'zip-timeline-item'} zip-reveal${revealed ? ' is-visible' : ''}${open ? ' is-open' : ''}`}
         data-tone={toneFor(item.category)}
         id={isFull ? `experience-${item.id}` : undefined}
         key={item.id}
@@ -36,7 +38,10 @@ export default function JourneyTimeline({ items, variant = 'compact' }: { items:
             className="zip-journey-toggle"
             aria-expanded={open}
             aria-controls={detailId}
-            onClick={() => setOpenId(open ? null : item.id)}
+            onClick={() => {
+              setRevealedIds((current) => new Set(current).add(item.id));
+              setOpenId(open ? null : item.id);
+            }}
           >
             <span>{open ? 'Réduire les détails' : isFull ? 'Découvrir cette étape' : 'Voir les détails'}</span>
             <ChevronDown size={16} aria-hidden="true" />
