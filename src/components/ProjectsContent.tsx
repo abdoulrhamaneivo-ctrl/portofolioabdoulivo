@@ -81,6 +81,7 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
           <a className="project-scroll-link" href="#realisations"><span>Explorer les projets</span><ArrowDownRight size={17} /></a>
         </div>
         <div className="project-hero-orbit project-reveal" aria-hidden="true">
+          <div className="project-hero-orbit-image"><Image src="/assets/images/projects/project1.jpg" alt="" fill sizes="(max-width: 680px) 160px, 260px" className="project-hero-orbit-image-source" unoptimized /></div>
           <div className="project-hero-orbit-glow" />
           <div className="project-hero-orbit-ring">
             {['PROBLÈME', 'IDÉE', 'UX / UI', 'CODE', 'TEST', 'RÉSULTAT'].map((step, index) => <span key={step} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--project-orbit-radius))` }}>{step}</span>)}

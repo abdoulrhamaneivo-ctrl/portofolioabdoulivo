@@ -54,6 +54,7 @@ function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { 
         }}
       >
         <span className="story-zip-scene-label">NAVIGATION / 06 SECTIONS</span>
+        <div className="story-zip-scene-photo" aria-hidden="true"><Image src="/assets/images/projects/project5.jpg" alt="" fill sizes="(max-width: 680px) 170px, 280px" className="story-zip-scene-photo-image" unoptimized /></div>
         <div className="story-zip-rig story-zip-rig--orbit">
           <div className="story-zip-orbit-ring" aria-label="Sections à explorer" style={{ '--orbit-radius-config': `${190 * depth}px` } as CSSProperties}>
             {sections.map((section, index) => <Link href={section.href} className="story-zip-orbit-node" key={section.href} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--orbit-radius))` }}>{section.label}</Link>)}
@@ -272,20 +273,20 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
   }, [publishedCertificates]);
   const movingTopics = useMemo(() => {
     const content = [
-      { title: data.profile.title || 'Mon profil', category: 'IDENTITÉ' },
-      ...publishedProjects.map((item) => ({ title: item.title, category: 'PROJET' })),
-      ...publishedCertificates.map((item) => ({ title: item.title, category: 'CERTIFICAT' })),
-      ...publishedJourney.map((item) => ({ title: item.title, category: item.category.toUpperCase() })),
-      ...publishedExperiments.map((item) => ({ title: item.title, category: 'LABORATOIRE' })),
+      { title: data.profile.title || 'Mon profil', category: 'IDENTITÉ', imageUrl: '' },
+      ...publishedProjects.map((item) => ({ title: item.title, category: 'PROJET', imageUrl: item.imageUrl })),
+      ...publishedCertificates.map((item) => ({ title: item.title, category: 'CERTIFICAT', imageUrl: '' })),
+      ...publishedJourney.map((item) => ({ title: item.title, category: item.category.toUpperCase(), imageUrl: '' })),
+      ...publishedExperiments.map((item) => ({ title: item.title, category: 'LABORATOIRE', imageUrl: '' })),
     ];
     const fallback = [
-      { title: 'Projets', category: 'ÉTUDES DE CAS' },
-      { title: 'Parcours', category: 'ÉTAPES' },
-      { title: 'Compétences', category: 'PREUVES' },
-      { title: 'Certificats', category: 'APPRENTISSAGES' },
-      { title: 'Expérimentations', category: 'LABORATOIRE' },
-      { title: 'Contact', category: 'LA SUITE' },
-      { title: 'Curriculum vitæ', category: 'DOCUMENT' },
+      { title: 'Projets', category: 'ÉTUDES DE CAS', imageUrl: '/assets/images/projects/project5.jpg' },
+      { title: 'Parcours', category: 'ÉTAPES', imageUrl: '/assets/images/about/coder.jpg' },
+      { title: 'Compétences', category: 'SAVOIR-FAIRE', imageUrl: '/assets/images/projects/project3.png' },
+      { title: 'Certificats', category: 'APPRENTISSAGES', imageUrl: '/assets/images/posts/post2.jpg' },
+      { title: 'Expérimentations', category: 'LABORATOIRE', imageUrl: '/assets/images/posts/post3.jpg' },
+      { title: 'Contact', category: 'LA SUITE', imageUrl: '/assets/images/projects/project2.jpg' },
+      { title: 'Curriculum vitæ', category: 'DOCUMENT', imageUrl: '/assets/images/posts/post1.jpg' },
     ];
     const unique = content.filter((item, index, items) => items.findIndex((candidate) => candidate.title === item.title) === index);
     return [...unique, ...fallback.filter((item) => !unique.some((candidate) => candidate.title === item.title))].slice(0, 8);
@@ -370,7 +371,10 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
 
       <section className="story-tile-marquee" aria-hidden="true">
         {[movingTopics, [...movingTopics].reverse()].map((row, rowIndex) => <div className={`story-tile-track${rowIndex ? ' is-reverse' : ''}`} key={rowIndex}>
-          {[...row, ...row].map((item, index) => <div className="story-tile-card" key={`${rowIndex}:${index}`}><span>{item.category}</span><i>{String((index % row.length) + 1).padStart(2, '0')}</i><strong>{item.title}</strong></div>)}
+          {[...row, ...row].map((item, index) => <div className="story-tile-card" key={`${rowIndex}:${index}`}>
+            {item.imageUrl && <Image src={item.imageUrl} alt="" fill sizes="220px" className="story-tile-image" unoptimized />}
+            <span>{item.category}</span><i>{String((index % row.length) + 1).padStart(2, '0')}</i><strong>{item.title}</strong>
+          </div>)}
         </div>)}
       </section>
 
