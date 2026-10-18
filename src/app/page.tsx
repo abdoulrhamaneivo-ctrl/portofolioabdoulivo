@@ -1,14 +1,14 @@
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import HomeContent from '@/components/HomeContent';
-import { readPortfolio } from '@/lib/portfolio';
+import { portfolioCssVariables, readPortfolio } from '@/lib/portfolio';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
   const data = await readPortfolio();
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col" style={portfolioCssVariables(data.settings)}>
       <div className="relative flex-grow flex flex-col">
         <div className="absolute inset-0 z-0 overflow-hidden">
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:28px_48px] -z-10"></div>

@@ -38,8 +38,9 @@ function OrbitScene({ data, projectCount, certificateCount, skillCount }: { data
           const bounds = event.currentTarget.getBoundingClientRect();
           const x = (event.clientX - bounds.left) / bounds.width - 0.5;
           const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 8}deg`);
-          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 8}deg`);
+          const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
+          event.currentTarget.style.setProperty('--pointer-tilt-x', `${-y * 16 * depth}deg`);
+          event.currentTarget.style.setProperty('--pointer-tilt-y', `${x * 16 * depth}deg`);
           event.currentTarget.style.setProperty('--profile-light-x', `${(x + 0.5) * 100}%`);
           event.currentTarget.style.setProperty('--profile-light-y', `${(y + 0.5) * 100}%`);
         }}
@@ -97,8 +98,9 @@ function ProjectStory({ project, index }: { project: PortfolioProject; index: nu
         const bounds = event.currentTarget.getBoundingClientRect();
         const x = (event.clientX - bounds.left) / bounds.width - 0.5;
         const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-        event.currentTarget.style.setProperty('--project-tilt-x', `${-y * 6}deg`);
-        event.currentTarget.style.setProperty('--project-tilt-y', `${x * 6}deg`);
+        const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
+        event.currentTarget.style.setProperty('--project-tilt-x', `${-y * 12 * depth}deg`);
+        event.currentTarget.style.setProperty('--project-tilt-y', `${x * 12 * depth}deg`);
         event.currentTarget.style.setProperty('--project-light-x', `${(x + 0.5) * 100}%`);
         event.currentTarget.style.setProperty('--project-light-y', `${(y + 0.5) * 100}%`);
       }}
@@ -271,11 +273,13 @@ function CertificateCard({ certificate, index }: { certificate: PortfolioCertifi
 
 export default function HomeContent({ data }: { data: PortfolioData }) {
   const progressBarRef = useRef<HTMLSpanElement>(null);
+  const reducedMotion = useReducedMotionFlag();
   const publishedJourney = useMemo(() => data.journey.filter((item) => item.published).sort((a, b) => {
     const startYear = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
     return startYear(b.period) - startYear(a.period);
   }), [data.journey]);
   const publishedProjects = useMemo(() => data.projects.filter((item) => item.published), [data.projects]);
+  const publishedExperiments = useMemo(() => data.experiments.filter((item) => item.published), [data.experiments]);
   const selectedProjects = useMemo(() => {
     const featured = publishedProjects.filter((item) => item.featured);
     return (featured.length ? featured : publishedProjects).slice(0, 3);
@@ -388,8 +392,35 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
         {publishedProjects.length > selectedProjects.length && <Link href="/projects" className="story-section-link story-reveal">Parcourir toutes les réalisations <span aria-hidden="true">⟶</span></Link>}
       </section>
 
+      {publishedExperiments.length > 0 && <section className="story-lab-section" id="laboratoire">
+        <div className="story-lab-heading"><div><p className="story-kicker">05 / CE QUE J’EXPLORE</p><h2>Des idées encore en mouvement.</h2><p>Prototypes et questions ouvertes, gardés distincts des projets finalisés.</p></div><Link href="/experiments">Explorer le laboratoire <span aria-hidden="true">⟶</span></Link></div>
+        <div className="story-lab-grid">{publishedExperiments.slice(0, 3).map((experiment, index) => <Link className="story-lab-card" href="/experiments" key={experiment.id} style={{ animationDelay: `${index * 80}ms` }}
+          onPointerMove={(event) => {
+            if (event.pointerType !== 'mouse' || reducedMotion.current) return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            const x = (event.clientX - bounds.left) / bounds.width - .5;
+            const y = (event.clientY - bounds.top) / bounds.height - .5;
+            const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
+            event.currentTarget.style.setProperty('--lab-tilt-x', `${-y * 12 * depth}deg`);
+            event.currentTarget.style.setProperty('--lab-tilt-y', `${x * 12 * depth}deg`);
+            event.currentTarget.style.setProperty('--lab-light-x', `${(x + .5) * 100}%`);
+            event.currentTarget.style.setProperty('--lab-light-y', `${(y + .5) * 100}%`);
+          }}
+          onPointerLeave={(event) => {
+            event.currentTarget.style.setProperty('--lab-tilt-x', '0deg');
+            event.currentTarget.style.setProperty('--lab-tilt-y', '0deg');
+            event.currentTarget.style.setProperty('--lab-light-x', '50%');
+            event.currentTarget.style.setProperty('--lab-light-y', '50%');
+          }}>
+          <div><span>{experiment.category || 'EXPLORATION'}</span><span className="story-lab-state"><i />{experiment.status || 'En cours'}</span></div>
+          <span className="story-lab-mark" aria-hidden="true">{String(index + 1).padStart(2, '0')}<i>✳</i></span>
+          <h3>{experiment.title}</h3>{experiment.description && <p>{experiment.description}</p>}
+          {experiment.technologies && <span className="story-lab-tech">{experiment.technologies}</span>}
+        </Link>)}</div>
+      </section>}
+
       <section className="story-section story-skills" id="competences">
-        <div className="story-section-aside story-reveal"><span>05 / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
+        <div className="story-section-aside story-reveal"><span>{publishedExperiments.length ? '06' : '05'} / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
         <div className="story-skills-main story-reveal"><p className="story-kicker">Ce que j’apprends à maîtriser</p><h2>Les compétences se construisent, projet après projet.</h2><p className="story-skills-copy">Les domaines ci-dessous sont tirés des technologies utilisées dans les projets et des compétences mentionnées dans les certificats publiés.</p>
           {skills.length ? <SkillEvidenceExplorer projects={publishedProjects} certificates={publishedCertificates} /> : <p className="story-skills-empty">Publie un projet ou un certificat pour faire apparaître ici les compétences appuyées par des réalisations réelles.</p>}
           <Link href="/competences" className="story-section-link">Voir les compétences détaillées <span aria-hidden="true">⟶</span></Link>
@@ -397,14 +428,14 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       </section>
 
       <section className="story-section story-proof" id="certificats">
-        <div className="story-section-heading story-reveal"><div><p className="story-kicker">06 / CE QUI LE PROUVE</p><h2>Apprendre, puis le montrer.</h2></div><p>Une sélection de certificats et de formations qui donnent du contexte aux compétences acquises.</p></div>
+        <div className="story-section-heading story-reveal"><div><p className="story-kicker">{publishedExperiments.length ? '07' : '06'} / CE QUI LE PROUVE</p><h2>Apprendre, puis le montrer.</h2></div><p>Une sélection de certificats et de formations qui donnent du contexte aux compétences acquises.</p></div>
         {selectedCertificates.length ? <div className="story-certificate-grid">{selectedCertificates.map((certificate, index) => <CertificateCard key={certificate.id} certificate={certificate} index={index} />)}</div> : <div className="story-empty-proof story-reveal"><span className="story-proof-glyph">✳</span><div><h3>Une bibliothèque de preuves, pas un mur de logos.</h3><p>Ajoute tes certificats depuis l’administration : chaque fiche peut indiquer son organisme, son domaine, ses compétences et son lien de vérification.</p></div><Link href="/certifications">Découvrir la bibliothèque <span aria-hidden="true">⟶</span></Link></div>}
         {publishedCertificates.length > selectedCertificates.length && <Link href="/certifications" className="story-section-link story-reveal">Explorer les {publishedCertificates.length} certificats <span aria-hidden="true">⟶</span></Link>}
       </section>
 
       <section className="story-contact" id="contact">
         <div className="story-contact-noise" aria-hidden="true" />
-        <div className="story-contact-heading story-reveal"><p className="story-kicker">07 / LA SUITE</p><h2>Un parcours se construit aussi dans la rencontre.</h2><p>Pour parler d’un projet, d’une idée ou d’une opportunité, voici où me joindre.</p></div>
+        <div className="story-contact-heading story-reveal"><p className="story-kicker">{publishedExperiments.length ? '08' : '07'} / LA SUITE</p><h2>Un parcours se construit aussi dans la rencontre.</h2><p>Pour parler d’un projet, d’une idée ou d’une opportunité, voici où me joindre.</p></div>
         <div className="story-contact-links story-reveal">
           {email ? <a href={`mailto:${email}`}><span>ÉCRIRE</span><strong>{email}</strong><i aria-hidden="true">↗</i></a> : <div><span>CONTACT</span><strong>Ajoute ton adresse e-mail dans l’administration.</strong></div>}
           {linkedin && <a href={linkedin} target="_blank" rel="noreferrer"><span>LINKEDIN</span><strong>Échanger sur mon parcours</strong><i aria-hidden="true">↗</i></a>}

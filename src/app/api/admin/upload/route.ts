@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
-import { AwsClient } from 'aws4fetch';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { hasAdminSession } from '@/lib/admin-auth';
 import { objectStorageEndpoint, objectStorageSigningRegion, PORTFOLIO_STORAGE_BUCKET } from '@/lib/object-storage';
 
@@ -76,40 +76,43 @@ export async function POST(request: NextRequest) {
   const missingStorageConfig = ['AWS_ENDPOINT_URL_S3', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY']
     .filter((name) => !process.env[name]);
   if (missingStorageConfig.length === 0) {
-    try {
-      const endpoint = objectStorageEndpoint();
-      if (!endpoint) return jsonError('Le stockage du site est incomplet (AWS_ENDPOINT_URL_S3). Contacte l’administrateur du site.', 503);
-      const client = new AwsClient({
+    const endpoint = objectStorageEndpoint();
+    if (!endpoint) return jsonError('Le stockage du site est incomplet (AWS_ENDPOINT_URL_S3). Contacte l’administrateur du site.', 503);
+    const client = new S3Client({
+      endpoint,
+      region: objectStorageSigningRegion(),
+      credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-        service: 's3',
-        region: objectStorageSigningRegion(),
-      });
-      const upload = await client.fetch(`${endpoint}/${PORTFOLIO_STORAGE_BUCKET}/${fileName}`, {
-        method: 'PUT',
-        body: content,
-        headers: { 'content-type': mime },
-      });
-
-      if (!upload.ok) {
-        const responseBody = await upload.text();
-        const storageCode = responseBody.match(/<Code>([^<]+)<\/Code>/i)?.[1] || 'Code inconnu';
-        const storageMessage = responseBody.match(/<Message>([^<]+)<\/Message>/i)?.[1] || '';
-        console.error('Portfolio file upload rejected by storage', {
-          status: upload.status,
-          code: storageCode,
-          message: storageMessage.slice(0, 220),
-          region: objectStorageSigningRegion(),
-          kind,
-          size: file.size,
-        });
-        return jsonError(`Le stockage a refusé le fichier (HTTP ${upload.status}, ${storageCode}). Réessaie ; si le problème continue, contacte l’administrateur.`, 502);
-      }
-
+      },
+      forcePathStyle: true,
+      // Neon Object Storage expects the normal S3 payload hash and does not
+      // accept SDK-injected checksum headers for an ordinary PutObject.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+    });
+    try {
+      await client.send(new PutObjectCommand({
+        Bucket: PORTFOLIO_STORAGE_BUCKET,
+        Key: fileName,
+        Body: Buffer.from(content),
+        ContentType: mime,
+      }));
       return NextResponse.json({ url: `/uploads/${fileName}`, fileName: file.name });
     } catch (error) {
-      console.error('Portfolio file upload could not reach storage', error instanceof Error ? error.message : 'Unknown storage error');
-      return jsonError('Connexion au stockage impossible. Réessaie dans quelques instants.', 502);
+      const uploadError = error as Error & { $metadata?: { httpStatusCode?: number } };
+      const status = uploadError.$metadata?.httpStatusCode || 502;
+      const code = uploadError.name || 'StorageError';
+      console.error('Portfolio file upload rejected by storage', {
+        status,
+        code,
+        message: uploadError.message?.slice(0, 220),
+        region: objectStorageSigningRegion(),
+        kind,
+        size: file.size,
+      });
+      return jsonError(`Le stockage a refusé le fichier (HTTP ${status}, ${code}). Vérifie le format puis réessaie.`, 502);
+    } finally {
+      client.destroy();
     }
   }
 

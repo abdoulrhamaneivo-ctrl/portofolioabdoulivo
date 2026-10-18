@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Portfolio personnel",
-  description: "Projets, certificats et parcours professionnel.",
+  name: "The Living Portfolio — Abdoulrhamane Ivo",
+  description: "Un portfolio vivant : projets numériques, parcours, expérimentations et apprentissages documentés.",
   nav: {
     home: "Home",
     posts: "Posts",

@@ -1,82 +1,19 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
+import type { CSSProperties } from 'react';
 
-export type PortfolioProfile = {
-  fullName: string;
-  portraitUrl: string;
-  title: string;
-  introduction: string;
-  about: string;
-  email: string;
-  linkedin: string;
-  github: string;
-};
+import { emptyPortfolio, portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProfile, type PortfolioProject, type PortfolioSettings } from './portfolio-shared';
+export { emptyPortfolio, portfolioAccents } from './portfolio-shared';
+export type { PortfolioAccent, PortfolioCertificate, PortfolioData, PortfolioExperiment, PortfolioJourneyItem, PortfolioProfile, PortfolioProject, PortfolioSettings } from './portfolio-shared';
 
-export type PortfolioProject = {
-  id: string;
-  title: string;
-  summary: string;
-  problem: string;
-  contribution: string;
-  solution: string;
-  technologies: string;
-  proofUrl: string;
-  link: string;
-  imageUrl: string;
-  published: boolean;
-  featured: boolean;
-};
-
-export type PortfolioJourneyItem = {
-  id: string;
-  category: 'Formation' | 'Expérience' | 'Contribution';
-  period: string;
-  title: string;
-  organization: string;
-  description: string;
-  published: boolean;
-};
-
-export type PortfolioCertificate = {
-  id: string;
-  title: string;
-  issuer: string;
-  date: string;
-  domain: string;
-  level: string;
-  type: string;
-  skills: string;
-  verificationUrl: string;
-  fileUrl: string;
-  published: boolean;
-  featured: boolean;
-};
-
-export type PortfolioData = {
-  profile: PortfolioProfile;
-  journey: PortfolioJourneyItem[];
-  projects: PortfolioProject[];
-  certificates: PortfolioCertificate[];
-  cv: { fileUrl: string; fileName: string; updatedAt: string };
-};
-
-export const emptyPortfolio: PortfolioData = {
-  profile: {
-    fullName: '',
-    portraitUrl: '',
-    title: '',
-    introduction: '',
-    about: '',
-    email: '',
-    linkedin: '',
-    github: '',
-  },
-  journey: [],
-  projects: [],
-  certificates: [],
-  cv: { fileUrl: '', fileName: '', updatedAt: '' },
-};
+export function portfolioCssVariables(settings: PortfolioSettings): CSSProperties {
+  return {
+    '--portfolio-accent': portfolioAccents[settings.accent],
+    '--portfolio-depth': String(settings.sceneDepth / 100),
+    '--motion-speed': String(settings.motionSpeed),
+  } as CSSProperties;
+}
 
 const dataPath = path.join(process.cwd(), 'data', 'portfolio.json');
 
@@ -86,45 +23,90 @@ function database() {
   return neon(connectionString);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown, maxLength = 8000) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function textFields<T extends object>(value: unknown, fields: Partial<Record<keyof T, number>>): T {
+  const source = isRecord(value) ? value : {};
+  return Object.fromEntries(Object.entries(fields).map(([key, maxLength]) => [key, stringValue(source[key], typeof maxLength === 'number' ? maxLength : undefined)])) as T;
+}
+
+function booleanValue(value: unknown) {
+  return value === true;
+}
+
+function listOf<T>(value: unknown, mapper: (item: unknown) => T): T[] {
+  return Array.isArray(value) ? value.slice(0, 500).filter(isRecord).map(mapper) : [];
+}
+
+export function normalizePortfolioData(value: unknown): PortfolioData {
+  const saved = isRecord(value) ? value : {};
+  const profile = textFields<PortfolioProfile>(saved.profile, {
+    fullName: 160, portraitUrl: 2000, title: 240, introduction: 5000, about: 8000,
+    email: 254, linkedin: 2000, github: 2000,
+  });
+  const settingsSource = isRecord(saved.settings) ? saved.settings : {};
+  const accent = ['lime', 'mint', 'blue', 'coral'].includes(String(settingsSource.accent))
+    ? settingsSource.accent as PortfolioAccent
+    : emptyPortfolio.settings.accent;
+  const depth = Number(settingsSource.sceneDepth);
+  const motionSpeed = Number(settingsSource.motionSpeed);
+
+  return {
+    profile: { ...emptyPortfolio.profile, ...profile },
+    journey: listOf(saved.journey, (item) => {
+      const result = textFields<PortfolioJourneyItem>(item, { id: 100, category: 40, period: 80, title: 240, organization: 240, description: 5000 });
+      return { ...result, category: ['Formation', 'Expérience', 'Contribution'].includes(result.category) ? result.category as PortfolioJourneyItem['category'] : 'Formation', published: booleanValue((item as Record<string, unknown>).published) };
+    }),
+    projects: listOf(saved.projects, (item) => ({
+      ...textFields<PortfolioProject>(item, { id: 100, title: 240, summary: 4000, problem: 8000, contribution: 8000, solution: 8000, technologies: 2000, proofUrl: 2000, link: 2000, imageUrl: 2000 }),
+      published: booleanValue((item as Record<string, unknown>).published),
+      featured: booleanValue((item as Record<string, unknown>).featured),
+    })),
+    certificates: listOf(saved.certificates, (item) => ({
+      ...textFields<PortfolioCertificate>(item, { id: 100, title: 240, issuer: 240, date: 40, domain: 120, level: 120, type: 120, skills: 4000, verificationUrl: 2000, fileUrl: 2000 }),
+      published: booleanValue((item as Record<string, unknown>).published),
+      featured: booleanValue((item as Record<string, unknown>).featured),
+    })),
+    experiments: listOf(saved.experiments, (item) => ({
+      ...textFields<PortfolioExperiment>(item, { id: 100, title: 240, category: 120, description: 5000, technologies: 2000, status: 80 }),
+      published: booleanValue((item as Record<string, unknown>).published),
+    })),
+    settings: {
+      accent,
+      sceneDepth: Number.isFinite(depth) ? Math.max(0, Math.min(100, depth)) : emptyPortfolio.settings.sceneDepth,
+      motionSpeed: Number.isFinite(motionSpeed) ? Math.max(0.65, Math.min(1.35, motionSpeed)) : emptyPortfolio.settings.motionSpeed,
+    },
+    cv: { ...emptyPortfolio.cv, ...textFields<PortfolioData['cv']>(saved.cv, { fileUrl: 2000, fileName: 240, updatedAt: 100 }) },
+  };
+}
+
 export async function readPortfolio(): Promise<PortfolioData> {
   const sql = database();
   if (sql) {
     const rows = await sql`SELECT data FROM portfolio_content WHERE id = 1`;
-    const saved = rows[0]?.data as Partial<PortfolioData> | undefined;
-    if (!saved) return emptyPortfolio;
-    return {
-      ...emptyPortfolio,
-      ...saved,
-      profile: { ...emptyPortfolio.profile, ...saved.profile },
-      cv: { ...emptyPortfolio.cv, ...saved.cv },
-      journey: Array.isArray(saved.journey) ? saved.journey : [],
-      projects: Array.isArray(saved.projects) ? saved.projects : [],
-      certificates: Array.isArray(saved.certificates) ? saved.certificates : [],
-    };
+    return normalizePortfolioData(rows[0]?.data);
   }
 
   if (process.env.VERCEL) throw new Error('DATABASE_URL doit être configuré pour utiliser le portfolio sur Vercel.');
   try {
     const raw = await readFile(dataPath, 'utf8');
-    const saved = JSON.parse(raw) as Partial<PortfolioData>;
-    return {
-      ...emptyPortfolio,
-      ...saved,
-      profile: { ...emptyPortfolio.profile, ...saved.profile },
-      cv: { ...emptyPortfolio.cv, ...saved.cv },
-      journey: Array.isArray(saved.journey) ? saved.journey : [],
-      projects: Array.isArray(saved.projects) ? saved.projects : [],
-      certificates: Array.isArray(saved.certificates) ? saved.certificates : [],
-    };
+    return normalizePortfolioData(JSON.parse(raw));
   } catch {
     return emptyPortfolio;
   }
 }
 
 export async function writePortfolio(data: PortfolioData): Promise<void> {
+  const normalized = normalizePortfolioData(data);
   const sql = database();
   if (sql) {
-    const serialized = JSON.stringify(data);
+    const serialized = JSON.stringify(normalized);
     await sql`INSERT INTO portfolio_content (id, data) VALUES (1, ${serialized}::jsonb)
       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`;
     return;
@@ -133,6 +115,6 @@ export async function writePortfolio(data: PortfolioData): Promise<void> {
   if (process.env.VERCEL) throw new Error('DATABASE_URL doit être configuré pour enregistrer le portfolio sur Vercel.');
   await mkdir(path.dirname(dataPath), { recursive: true });
   const temporaryPath = `${dataPath}.tmp`;
-  await writeFile(temporaryPath, JSON.stringify(data, null, 2), 'utf8');
+  await writeFile(temporaryPath, JSON.stringify(normalized, null, 2), 'utf8');
   await rename(temporaryPath, dataPath);
 }

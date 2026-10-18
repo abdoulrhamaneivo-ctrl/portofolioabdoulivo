@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpRight, ExternalLink } from 'lucide-react';
@@ -10,11 +10,12 @@ import type { PortfolioProject } from '@/lib/portfolio';
 
 type ProjectDetailProps = {
   project: PortfolioProject;
+  style: CSSProperties;
   proofUrl: string;
   projectUrl: string;
 };
 
-export default function ProjectDetailContent({ project, proofUrl, projectUrl }: ProjectDetailProps) {
+export default function ProjectDetailContent({ project, style, proofUrl, projectUrl }: ProjectDetailProps) {
   const pageRef = useRef<HTMLElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
   const projectArtRef = useRef<HTMLDivElement>(null);
@@ -92,8 +93,9 @@ export default function ProjectDetailContent({ project, proofUrl, projectUrl }: 
       pointerFrameRef.current = null;
       const pointer = pendingPointerRef.current;
       if (!pointer) return;
-      projectArtRef.current?.style.setProperty('--detail-tilt-x', `${-pointer.y * 3}deg`);
-      projectArtRef.current?.style.setProperty('--detail-tilt-y', `${pointer.x * 3}deg`);
+      const depth = Number(getComputedStyle(pageRef.current || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
+      projectArtRef.current?.style.setProperty('--detail-tilt-x', `${-pointer.y * 7 * depth}deg`);
+      projectArtRef.current?.style.setProperty('--detail-tilt-y', `${pointer.x * 7 * depth}deg`);
       projectArtRef.current?.style.setProperty('--detail-light-x', `${(pointer.x + 0.5) * 100}%`);
       projectArtRef.current?.style.setProperty('--detail-light-y', `${(pointer.y + 0.5) * 100}%`);
     });
@@ -116,7 +118,7 @@ export default function ProjectDetailContent({ project, proofUrl, projectUrl }: 
     });
   };
 
-  return <main ref={pageRef} className="project-detail-page">
+  return <main ref={pageRef} className="project-detail-page" style={style}>
     <div className="project-scroll-progress" aria-hidden="true"><span ref={progressRef} /></div>
     <div className="project-detail-shell">
       <Navbar />

@@ -1,52 +1,53 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ArrowUpRight, Award, Search, SlidersHorizontal } from 'lucide-react';
 import type { PortfolioCertificate } from '@/lib/portfolio';
 import { safeExternalUrl } from '@/lib/urls';
 
 export default function CertificationsContent({ certificates }: { certificates: PortfolioCertificate[] }) {
   const [query, setQuery] = useState('');
-  const [domain, setDomain] = useState('Tous les domaines');
-  const [issuer, setIssuer] = useState('Tous les organismes');
-  const [year, setYear] = useState('Toutes les années');
-  const [level, setLevel] = useState('Tous les niveaux');
-  const domains = ['Tous les domaines', ...Array.from(new Set(certificates.map((item) => item.domain).filter(Boolean))).sort()];
-  const issuers = ['Tous les organismes', ...Array.from(new Set(certificates.map((item) => item.issuer).filter(Boolean))).sort()];
-  const years = ['Toutes les années', ...Array.from(new Set(certificates.map((item) => item.date.slice(0, 4)).filter((value) => /^\d{4}$/.test(value)))).sort().reverse()];
-  const levels = ['Tous les niveaux', ...Array.from(new Set(certificates.map((item) => item.level).filter(Boolean))).sort()];
+  const [domain, setDomain] = useState('');
+  const [issuer, setIssuer] = useState('');
+  const [year, setYear] = useState('');
+  const [level, setLevel] = useState('');
+  const domains = Array.from(new Set(certificates.map((item) => item.domain).filter(Boolean))).sort();
+  const issuers = Array.from(new Set(certificates.map((item) => item.issuer).filter(Boolean))).sort();
+  const years = Array.from(new Set(certificates.map((item) => item.date.slice(0, 4)).filter((value) => /^\d{4}$/.test(value)))).sort().reverse();
+  const levels = Array.from(new Set(certificates.map((item) => item.level).filter(Boolean))).sort();
   const results = useMemo(() => certificates.filter((item) => {
     const text = `${item.title} ${item.issuer} ${item.skills} ${item.domain} ${item.level} ${item.type}`.toLocaleLowerCase('fr');
-    return text.includes(query.toLocaleLowerCase('fr'))
-      && (domain === 'Tous les domaines' || item.domain === domain)
-      && (issuer === 'Tous les organismes' || item.issuer === issuer)
-      && (year === 'Toutes les années' || item.date.startsWith(year))
-      && (level === 'Tous les niveaux' || item.level === level);
+    return text.includes(query.toLocaleLowerCase('fr')) && (!domain || item.domain === domain) && (!issuer || item.issuer === issuer) && (!year || item.date.startsWith(year)) && (!level || item.level === level);
   }), [certificates, query, domain, issuer, year, level]);
+  const select = (label: string, value: string, setValue: (value: string) => void, options: string[]) => <label className="certificate-filter"><span>{label}</span><select value={value} onChange={(event) => setValue(event.target.value)}><option value="">Tous</option>{options.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>;
 
-  const selectClass = 'px-3 py-2 text-sm border border-neutral-300 rounded-lg bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200';
-  return <section className="relative z-20 max-w-4xl mx-auto mt-32 mb-12 px-7 lg:px-0">
-    <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-3xl lg:text-4xl">Certificats</h2>
-    <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-400 sm:leading-7 lg:leading-8 sm:text-base lg:text-lg">Certifications, formations et attestations de participation.</p>
-    <div className="mt-6 flex flex-wrap gap-2">
-      <input className={`${selectClass} min-w-[220px] flex-1`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par nom…" aria-label="Rechercher un certificat" />
-      <select className={selectClass} value={domain} onChange={(event) => setDomain(event.target.value)} aria-label="Filtrer par domaine">{domains.map((item) => <option key={item}>{item}</option>)}</select>
-      <select className={selectClass} value={issuer} onChange={(event) => setIssuer(event.target.value)} aria-label="Filtrer par organisme">{issuers.map((item) => <option key={item}>{item}</option>)}</select>
-      <select className={selectClass} value={year} onChange={(event) => setYear(event.target.value)} aria-label="Filtrer par année">{years.map((item) => <option key={item}>{item}</option>)}</select>
-      <select className={selectClass} value={level} onChange={(event) => setLevel(event.target.value)} aria-label="Filtrer par niveau">{levels.map((item) => <option key={item}>{item}</option>)}</select>
+  return <section className="portfolio-cert-page">
+    <header className="portfolio-page-heading certificate-heading">
+      <p className="portfolio-page-kicker"><span /> ARCHIVES D’APPRENTISSAGE / 01</p>
+      <h1>Les preuves<br /><em>de ce que j’apprends.</em></h1>
+      <p className="portfolio-page-lead">Certifications, cours et attestations documentés par leur organisme, leur date et les compétences qu’ils couvrent.</p>
+      <div className="certificate-totals"><strong>{String(certificates.length).padStart(2, '0')}</strong><span>éléments publiés<br />dans la bibliothèque</span><i aria-hidden="true" /></div>
+    </header>
+
+    <div className="certificate-toolbar">
+      <div className="certificate-search"><Search size={17} aria-hidden="true" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher une preuve…" aria-label="Rechercher par nom, organisme ou compétence" /></div>
+      <span className="certificate-toolbar-count"><SlidersHorizontal size={15} aria-hidden="true" /> {results.length} / {certificates.length}</span>
     </div>
-    <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">{results.length} document{results.length === 1 ? '' : 's'}</p>
-    {results.length ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">{results.map((item) => <article id={`certificate-${item.id}`} key={item.id} className="relative scroll-mt-28 p-6 border border-dashed border-neutral-300 dark:border-neutral-600 rounded-2xl bg-white dark:bg-neutral-950">
-      <div className="flex items-start justify-between gap-3"><span className="px-2.5 py-1 text-xs rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">{item.type || 'Certificat'}</span>{item.date && <span className="text-xs text-neutral-500">{formatMonth(item.date)}</span>}</div>
-      <h3 className="mt-4 text-lg font-semibold text-neutral-900 dark:text-neutral-100">{item.title}</h3>
-      {item.issuer && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{item.issuer}</p>}
-      <div className="mt-3 flex flex-wrap gap-2">{item.domain && <span className="px-2.5 py-1 text-xs rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">{item.domain}</span>}{item.level && <span className="px-2.5 py-1 text-xs rounded-full bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">{item.level}</span>}</div>
-      {item.skills && <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-400">Compétences : {item.skills}</p>}
-      <div className="mt-5 flex flex-wrap gap-4 text-sm">{item.fileUrl && <a className="text-indigo-600 dark:text-indigo-400 underline" href={item.fileUrl} target="_blank" rel="noreferrer">Consulter le document</a>}{safeExternalUrl(item.verificationUrl) && <a className="text-indigo-600 dark:text-indigo-400 underline" href={safeExternalUrl(item.verificationUrl)} target="_blank" rel="noreferrer">Vérifier le certificat</a>}</div>
-    </article>)}</div> : <p className="mt-7 text-sm text-neutral-500 dark:text-neutral-400">{certificates.length ? 'Aucun résultat pour ces filtres.' : 'Les certificats publiés apparaîtront ici.'}</p>}
-  </section>;
-}
+    <div className="certificate-filters" aria-label="Filtres de la bibliothèque">
+      {select('DOMAINE', domain, setDomain, domains)}{select('ORGANISME', issuer, setIssuer, issuers)}{select('ANNÉE', year, setYear, years)}{select('NIVEAU', level, setLevel, levels)}
+    </div>
 
-function formatMonth(value: string) {
-  if (!/^\d{4}-\d{2}$/.test(value)) return value;
-  return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(`${value}-01T12:00:00`));
+    {results.length ? <div className="certificate-library" aria-live="polite">{results.map((item, index) => {
+      const verification = safeExternalUrl(item.verificationUrl);
+      const date = item.date && /^\d{4}-\d{2}$/.test(item.date) ? new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(`${item.date}-01T12:00:00`)) : item.date;
+      return <article id={`certificate-${item.id}`} key={item.id} className="certificate-entry" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
+        <div className="certificate-entry-number">{String(index + 1).padStart(2, '0')}<span> / {String(results.length).padStart(2, '0')}</span></div>
+        <div className="certificate-entry-seal"><Award size={22} strokeWidth={1.4} aria-hidden="true" /></div>
+        <div className="certificate-entry-main"><div className="certificate-entry-meta"><span>{item.type || 'APPRENTISSAGE DOCUMENTÉ'}</span>{item.date && <time>{date}</time>}</div><h2>{item.title}</h2><p className="certificate-entry-issuer">{item.issuer || 'Organisme non renseigné'}</p>
+          <div className="certificate-entry-tags">{item.domain && <span>{item.domain}</span>}{item.level && <span>{item.level}</span>}{item.skills && item.skills.split(/[,;\n]+/).map((skill) => skill.trim()).filter(Boolean).slice(0, 4).map((skill) => <span className="is-skill" key={skill}>{skill}</span>)}</div>
+        </div>
+        <div className="certificate-entry-actions">{item.fileUrl && <a href={item.fileUrl} target="_blank" rel="noreferrer">Consulter le document <ArrowUpRight size={15} /></a>}{verification && <a href={verification} target="_blank" rel="noreferrer">Vérifier la preuve <ArrowUpRight size={15} /></a>}{!item.fileUrl && !verification && <span>Référence à compléter</span>}</div>
+      </article>;
+    })}</div> : <div className="portfolio-empty-state"><span>∅</span><div><p className="portfolio-about-eyebrow">AUCUNE CORRESPONDANCE</p><h2>{certificates.length ? 'Aucune preuve ne correspond à ces filtres.' : 'La bibliothèque attend ses premières preuves.'}</h2><p>{certificates.length ? 'Efface un filtre ou essaie un autre terme de recherche.' : 'Les certificats publiés depuis l’administration apparaîtront ici avec leurs informations de vérification.'}</p></div></div>}
+  </section>;
 }

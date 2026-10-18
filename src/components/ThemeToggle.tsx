@@ -40,7 +40,7 @@ export default function ThemeToggle() {
     <button
       onClick={handleThemeToggle}
       className="relative flex items-center pl-6 ml-4 font-medium tracking-wide cursor-pointer text-neutral-800 group dark:text-white"
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={`Passer en mode ${theme === 'dark' ? 'clair' : 'sombre'}`}
     >
       <div className="absolute left-0 flex items-center justify-center w-6 h-6 overflow-hidden border-b border-transparent horizon group-hover:border-neutral-600">
         <svg
@@ -72,4 +72,4 @@ export default function ThemeToggle() {
       </span>
     </button>
   )
-} 
+}

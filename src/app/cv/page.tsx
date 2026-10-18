@@ -1,20 +1,20 @@
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { readPortfolio } from '@/lib/portfolio';
+import { portfolioCssVariables, readPortfolio } from '@/lib/portfolio';
 
 export const dynamic = 'force-dynamic';
 
 export default async function CvPage() {
-  const { cv, profile } = await readPortfolio();
+  const data = await readPortfolio();
+  const { cv, profile } = data;
   const canPreviewCv = /\.pdf$/i.test(cv.fileName || cv.fileUrl.split(/[?#]/)[0]);
-  return <main className="min-h-screen flex flex-col"><div className="relative flex-grow"><Navbar /><section className="relative z-20 max-w-4xl mx-auto mt-32 mb-12 px-7 lg:px-0">
-    <h2 className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100 sm:text-3xl lg:text-4xl">Mon CV</h2>
-    <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-400 sm:leading-7 lg:leading-8 sm:text-base lg:text-lg">{profile.fullName ? `Curriculum vitæ de ${profile.fullName}.` : 'Consulter et télécharger mon curriculum vitæ.'}</p>
-    {cv.fileUrl ? <div className="mt-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-3"><span className="text-sm text-neutral-600 dark:text-neutral-400">{cv.fileName || 'CV.pdf'}</span><a href={cv.fileUrl} download={cv.fileName || 'CV.pdf'} className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 dark:bg-white dark:text-neutral-900">Télécharger le CV</a></div>
-      {canPreviewCv ? <div className="overflow-hidden border border-neutral-300 dark:border-neutral-700 rounded-xl bg-neutral-100 dark:bg-neutral-900"><iframe src={`${cv.fileUrl}#view=FitH`} title={`CV de ${profile.fullName || 'la personne'}`} className="w-full h-[78vh] min-h-[500px]" /></div> : <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center text-sm text-neutral-600 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">Ce format ne s’affiche pas dans le navigateur. Télécharge le fichier pour le consulter.</div>}
-    </div> : <p className="mt-6 text-sm text-neutral-500 dark:text-neutral-400">Le CV sera disponible ici après son ajout dans l’administration.</p>}
-    <Link href="/about" className="mt-6 inline-block text-sm text-indigo-600 dark:text-indigo-400 underline">Retour à la page À propos</Link>
+  return <main className="min-h-screen flex flex-col" style={portfolioCssVariables(data.settings)}><div className="relative flex-grow"><Navbar /><section className="portfolio-cv-page">
+    <header className="portfolio-page-heading"><p className="portfolio-page-kicker"><span /> DOCUMENT PROFESSIONNEL / 01</p><h1>Le parcours,<br /><em>en un document.</em></h1><p className="portfolio-page-lead">{profile.fullName ? `Curriculum vitæ de ${profile.fullName}.` : 'Consulter et télécharger mon curriculum vitæ.'} La version publiée est consultable directement ici.</p></header>
+    {cv.fileUrl ? <div className="portfolio-cv-document">
+      <div className="portfolio-cv-filebar"><div><span className="portfolio-cv-fileicon">PDF</span><div><strong>{cv.fileName || 'CV.pdf'}</strong><span>{cv.updatedAt ? `Mis à jour le ${cv.updatedAt}` : 'Document consultable'}</span></div></div><a href={cv.fileUrl} download={cv.fileName || 'CV.pdf'}>Télécharger le CV <span aria-hidden="true">↓</span></a></div>
+      {canPreviewCv ? <div className="portfolio-cv-viewer"><iframe src={`${cv.fileUrl}#view=FitH`} title={`CV de ${profile.fullName || 'la personne'}`} /></div> : <div className="portfolio-cv-format-note"><span aria-hidden="true">↗</span><div><strong>Le fichier est prêt à être consulté.</strong><p>Ce format ne peut pas être affiché directement dans la page. Télécharge-le pour l’ouvrir.</p><a href={cv.fileUrl} target="_blank" rel="noreferrer">Ouvrir le document <span aria-hidden="true">↗</span></a></div></div>}
+    </div> : <div className="portfolio-empty-state"><span aria-hidden="true">▤</span><div><p className="portfolio-about-eyebrow">DOCUMENT À AJOUTER</p><h2>Le CV sera consultable depuis cette page.</h2><p>Ajoute le fichier dans l’administration pour permettre sa consultation et son téléchargement.</p><Link href="/admin">Ouvrir l’administration <span aria-hidden="true">↗</span></Link></div></div>}
+    <Link href="/about" className="portfolio-cv-back">Retour au parcours <span aria-hidden="true">⟶</span></Link>
   </section></div><Footer /></main>;
 }

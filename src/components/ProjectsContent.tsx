@@ -114,8 +114,9 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
             const bounds = event.currentTarget.getBoundingClientRect();
             const x = (event.clientX - bounds.left) / bounds.width;
             const y = (event.clientY - bounds.top) / bounds.height;
+            const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
             pointerCardRef.current = event.currentTarget;
-            pointerValueRef.current = { tiltX: (0.5 - y) * 7, tiltY: (x - 0.5) * 7, x: x * 100, y: y * 100 };
+            pointerValueRef.current = { tiltX: (0.5 - y) * 14 * depth, tiltY: (x - 0.5) * 14 * depth, x: x * 100, y: y * 100 };
             if (pointerFrameRef.current !== null) return;
             pointerFrameRef.current = requestAnimationFrame(() => {
               pointerFrameRef.current = null;

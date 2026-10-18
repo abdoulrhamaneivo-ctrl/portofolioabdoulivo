@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import Image from 'next/image';
 import {
   ArrowUpRight,
@@ -11,10 +11,12 @@ import {
   Eye,
   EyeOff,
   FileText,
+  FlaskConical,
   FolderKanban,
   Globe2,
   LayoutDashboard,
   LogOut,
+  Palette,
   Plus,
   Save,
   Settings2,
@@ -23,9 +25,9 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
-import type { PortfolioCertificate, PortfolioData, PortfolioJourneyItem, PortfolioProject } from '@/lib/portfolio';
+import { portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProject } from '@/lib/portfolio-shared';
 
-type Section = 'overview' | 'profile' | 'journey' | 'projects' | 'certificates' | 'cv';
+type Section = 'overview' | 'profile' | 'journey' | 'projects' | 'certificates' | 'experiments' | 'cv' | 'studio';
 type Session = { configured: boolean; authenticated: boolean };
 
 const emptyProject = (): PortfolioProject => ({
@@ -42,13 +44,19 @@ const emptyJourneyItem = (): PortfolioJourneyItem => ({
   id: crypto.randomUUID(), category: 'Formation', period: '', title: '', organization: '', description: '', published: false,
 });
 
+const emptyExperiment = (): PortfolioExperiment => ({
+  id: crypto.randomUUID(), title: '', category: 'Prototype', description: '', technologies: '', status: 'En cours', published: false,
+});
+
 const sections: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Vue d’ensemble', icon: LayoutDashboard },
   { id: 'profile', label: 'Profil', icon: UserRound },
   { id: 'journey', label: 'Parcours', icon: Briefcase },
   { id: 'projects', label: 'Projets', icon: FolderKanban },
   { id: 'certificates', label: 'Certificats', icon: Award },
+  { id: 'experiments', label: 'Laboratoire', icon: FlaskConical },
   { id: 'cv', label: 'CV', icon: FileText },
+  { id: 'studio', label: 'Identité visuelle', icon: Palette },
 ];
 
 export default function AdminPanel() {
@@ -65,6 +73,7 @@ export default function AdminPanel() {
   const [projectDraft, setProjectDraft] = useState<PortfolioProject | null>(null);
   const [certificateDraft, setCertificateDraft] = useState<PortfolioCertificate | null>(null);
   const [journeyDraft, setJourneyDraft] = useState<PortfolioJourneyItem | null>(null);
+  const [experimentDraft, setExperimentDraft] = useState<PortfolioExperiment | null>(null);
 
   useEffect(() => {
     void checkSession();
@@ -295,7 +304,7 @@ export default function AdminPanel() {
         <p className="admin-side-caption">ESPACE DE TRAVAIL</p>
         <nav className="mt-3 space-y-1" aria-label="Administration">
           {sections.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => { setSection(id); setProjectDraft(null); setCertificateDraft(null); setJourneyDraft(null); setError(''); setNotice(''); }} className={`admin-nav-item ${section === id ? 'is-active' : ''}`}>
+            <button key={id} onClick={() => { setSection(id); setProjectDraft(null); setCertificateDraft(null); setJourneyDraft(null); setExperimentDraft(null); setError(''); setNotice(''); }} className={`admin-nav-item ${section === id ? 'is-active' : ''}`}>
               <Icon size={17} strokeWidth={1.8} /><span>{label}</span>{section === id && <span className="admin-active-dot" />}
             </button>
           ))}
@@ -435,6 +444,33 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {section === 'experiments' && (
+            <div className="max-w-5xl">
+              <div className="admin-list-heading"><SectionIntro title="Expérimentations & prototypes" description="Garde les essais en cours dans un laboratoire séparé des projets terminés. Tu choisis lesquels montrer sur le site." /><button className="admin-primary" onClick={() => setExperimentDraft(emptyExperiment())}><Plus size={16} />Nouvelle expérimentation</button></div>
+              {experimentDraft ? (
+                <section className="admin-card mt-6">
+                  <div className="admin-card-heading"><div><p className="admin-eyebrow">LABORATOIRE</p><h2>{data.experiments.some((item) => item.id === experimentDraft.id) ? 'Modifier l’expérimentation' : 'Nouvelle expérimentation'}</h2></div><button className="admin-icon-button" aria-label="Fermer" onClick={() => setExperimentDraft(null)}><X size={18} /></button></div>
+                  <div className="admin-form-grid mt-6">
+                    <Field label="Nom de l’expérimentation"><input className="admin-input" value={experimentDraft.title} onChange={(e) => setExperimentDraft({ ...experimentDraft, title: e.target.value })} placeholder="Ex. Interface de recherche vocale" /></Field>
+                    <Field label="Domaine"><input className="admin-input" value={experimentDraft.category} onChange={(e) => setExperimentDraft({ ...experimentDraft, category: e.target.value })} placeholder="IA, UX, automatisation…" /></Field>
+                    <Field label="État d’avancement"><select className="admin-input" value={experimentDraft.status} onChange={(e) => setExperimentDraft({ ...experimentDraft, status: e.target.value })}><option>En cours</option><option>Exploration</option><option>Prototype</option><option>Mis en pause</option><option>Terminé</option></select></Field>
+                    <Field label="Technologies explorées"><input className="admin-input" value={experimentDraft.technologies} onChange={(e) => setExperimentDraft({ ...experimentDraft, technologies: e.target.value })} placeholder="Sépare les éléments par des virgules." /></Field>
+                    <div className="col-span-full"><Field label="Question ou piste explorée"><textarea className="admin-input min-h-32 resize-y" value={experimentDraft.description} onChange={(e) => setExperimentDraft({ ...experimentDraft, description: e.target.value })} placeholder="Qu’essaies-tu de comprendre ou de vérifier ?" /></Field></div>
+                  </div>
+                  <div className="admin-check-row"><label><input type="checkbox" checked={experimentDraft.published} onChange={(e) => setExperimentDraft({ ...experimentDraft, published: e.target.checked })} />Afficher dans le laboratoire public</label></div>
+                  <div className="admin-card-footer"><button className="admin-secondary" onClick={() => setExperimentDraft(null)}>Annuler</button><button className="admin-primary" disabled={busy || !experimentDraft.title.trim()} onClick={() => {
+                    const exists = data.experiments.some((item) => item.id === experimentDraft.id);
+                    const next = { ...data, experiments: exists ? data.experiments.map((item) => item.id === experimentDraft.id ? experimentDraft : item) : [experimentDraft, ...data.experiments] };
+                    void saveData(next, 'Expérimentation enregistrée.'); setExperimentDraft(null);
+                  }}><Save size={16} />Enregistrer</button></div>
+                </section>
+              ) : <div className="admin-entry-list mt-6">{data.experiments.length ? data.experiments.map((item) => <EntryRow key={item.id} title={item.title || 'Expérimentation sans titre'} subtitle={item.description || item.technologies || 'Détails à compléter'} published={item.published} tag={[item.category, item.status].filter(Boolean).join(' · ')} onEdit={() => setExperimentDraft({ ...item })} onDelete={() => {
+                if (!window.confirm(`Supprimer « ${item.title || 'cette expérimentation'} » ?`)) return;
+                void saveData({ ...data, experiments: data.experiments.filter((entry) => entry.id !== item.id) }, 'Expérimentation supprimée.');
+              }} />) : <EmptyState icon={<FlaskConical size={22} />} title="Le laboratoire est prêt" detail="Ajoute une piste ou un prototype. Les essais restent distincts des projets présentés comme finalisés." />}</div>}
+            </div>
+          )}
+
           {section === 'cv' && (
             <section className="admin-card max-w-4xl">
               <SectionIntro title="Ton CV consultable" description="Envoie une version PDF. La page CV proposera ensuite la consultation et le téléchargement." />
@@ -442,6 +478,31 @@ export default function AdminPanel() {
                 {data.cv.fileUrl && <div className="admin-cv-current"><span className="admin-file-icon"><FileText size={17} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-neutral-800">{data.cv.fileName || 'Mon CV.pdf'}</strong><span className="text-xs text-neutral-400">{data.cv.updatedAt ? `Mis à jour le ${new Date(data.cv.updatedAt).toLocaleDateString('fr-FR')}` : 'CV disponible'}</span></span><a href={data.cv.fileUrl} target="_blank" rel="noreferrer" className="admin-text-link">Consulter<ArrowUpRight size={14} /></a></div>}
               </div>
               <p className="mt-5 text-xs leading-5 text-neutral-400">Ton CV sera accessible publiquement depuis la page dédiée. Évite d’y inclure des données personnelles dont tu ne souhaites pas la diffusion.</p>
+            </section>
+          )}
+
+          {section === 'studio' && (
+            <section className="admin-card max-w-4xl">
+              <SectionIntro title="Identité visuelle & mouvement" description="Ajuste les détails visuels du portfolio. Les réglages sont enregistrés dans Neon et appliqués sur toutes les pages." />
+              <div className="admin-studio-grid mt-7">
+                <div>
+                  <Field label="Couleur de signature" hint="La palette conserve le contraste avec les surfaces sombres et claires.">
+                    <div className="admin-accent-options" role="group" aria-label="Choisir la couleur de signature">
+                      {(Object.entries(portfolioAccents) as [PortfolioAccent, string][]).map(([accent, color]) => <button type="button" key={accent} aria-label={`Choisir ${accent}`} aria-pressed={data.settings.accent === accent} className="admin-accent-swatch" style={{ '--swatch': color } as CSSProperties} onClick={() => setData({ ...data, settings: { ...data.settings, accent } })}><span />{accent === 'lime' ? 'Vert citron' : accent === 'mint' ? 'Menthe' : accent === 'blue' ? 'Bleu' : 'Corail'}</button>)}
+                    </div>
+                  </Field>
+                  <Field label={`Profondeur 3D · ${data.settings.sceneDepth}%`} hint="Définit l’amplitude du relief lors des interactions au pointeur.">
+                    <input className="admin-range" type="range" min="0" max="100" value={data.settings.sceneDepth} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, sceneDepth: Number(e.target.value) } })} />
+                  </Field>
+                  <Field label={`Rythme des animations · ${data.settings.motionSpeed.toFixed(2)}×`} hint="Le réglage respecte toujours la préférence système de réduction des animations.">
+                    <input className="admin-range" type="range" min="0.65" max="1.35" step="0.05" value={data.settings.motionSpeed} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, motionSpeed: Number(e.target.value) } })} />
+                  </Field>
+                </div>
+                <div className="admin-studio-preview" style={{ '--portfolio-accent': portfolioAccents[data.settings.accent], '--portfolio-depth': `${data.settings.sceneDepth}px`, '--portfolio-motion-speed': data.settings.motionSpeed } as CSSProperties}>
+                  <span className="admin-studio-preview-label">APERÇU DU STUDIO</span><div className="admin-studio-orbit"><i /><i /><i /></div><div className="admin-studio-preview-card"><span>PROFIL NUMÉRIQUE / 01</span><strong>Une présence qui prend forme.</strong><small>Portfolio · Parcours · Projets</small></div>
+                </div>
+              </div>
+              <div className="admin-card-footer"><span className="text-xs text-neutral-400">Les changements deviennent visibles après l’enregistrement.</span><button className="admin-primary" onClick={() => saveData(data, 'Identité visuelle enregistrée.')} disabled={busy}><Save size={16} />Enregistrer les réglages</button></div>
             </section>
           )}
         </div>

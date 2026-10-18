@@ -1,8 +1,8 @@
 export const globalConfig = {
   site: {
-    name: "Portfolio personnel",
-    author: "Portfolio",
-    description: "Projets, certificats et parcours professionnel.",
+    name: "The Living Portfolio",
+    author: "Abdoulrhamane Ivo",
+    description: "Un portfolio vivant : projets numériques, parcours, expérimentations et apprentissages documentés.",
     url: "/"
   },
   navigation: {
@@ -15,6 +15,14 @@ export const globalConfig = {
       {
         title: "Projets",
         href: "/projects"
+      },
+      {
+        title: "Parcours",
+        href: "/about#parcours"
+      },
+      {
+        title: "Laboratoire",
+        href: "/experiments"
       },
       {
         title: "Certificats",
@@ -36,7 +44,7 @@ export const globalConfig = {
   },
   footer: {
     aria: "Navigation de pied de page",
-    copyright: "© 2026 Portfolio personnel. Tous droits réservés.",
+    copyright: "© 2026 The Living Portfolio. Tous droits réservés.",
     social: {
       twitter: "#",
       github: "#",
