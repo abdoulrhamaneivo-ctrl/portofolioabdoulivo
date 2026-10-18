@@ -133,6 +133,8 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       </div>
     </section>
 
+    {gallery.length > 0 && <MomentsGallery items={gallery.slice(0, 6)} />}
+
     <section className="zip-approach zip-container" id="demarche">
       <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">MA DÉMARCHE <span>/</span> 03</p><h2>Du besoin à la <em>solution.</em></h2></div><p>Une approche concrète : comprendre le contexte, structurer les besoins, construire avec méthode et apprendre du résultat.</p></header>
       <div className="zip-approach-grid">
@@ -144,8 +146,6 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
         ].map(([index, title, copy]) => <article className="zip-approach-card zip-reveal" key={index}><span>{index} <i className="zip-line" /></span><h3>{title}</h3><p>{copy}</p></article>)}
       </div>
     </section>
-
-    {gallery.length > 0 && <MomentsGallery items={gallery} />}
 
     <section className="zip-skills" id="competences">
       <div className="zip-container">

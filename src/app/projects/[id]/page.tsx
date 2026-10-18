@@ -13,7 +13,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   return <ProjectDetailContent
     project={project}
-    style={portfolioCssVariables(data.settings)}
+    style={portfolioCssVariables(data.settings, data)}
     proofUrl={safeExternalUrl(project.proofUrl) || ''}
     projectUrl={safeExternalUrl(project.link) || ''}
   />;

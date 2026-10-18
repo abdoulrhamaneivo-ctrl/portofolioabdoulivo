@@ -7,11 +7,19 @@ import { emptyPortfolio, portfolioAccents, type PortfolioAccent, type PortfolioC
 export { emptyPortfolio, portfolioAccents } from './portfolio-shared';
 export type { PortfolioAccent, PortfolioCertificate, PortfolioData, PortfolioExperiment, PortfolioGalleryItem, PortfolioJourneyItem, PortfolioProfile, PortfolioProject, PortfolioSettings, PortfolioSkillGroup } from './portfolio-shared';
 
-export function portfolioCssVariables(settings: PortfolioSettings): CSSProperties {
+function portfolioBackgroundImage(url: string) {
+  if (!/^\/uploads\/(?:profile|gallery|project)-[0-9a-f-]{36}\.(?:jpg|jpeg|png|webp)$/i.test(url)) return 'none';
+  return `url("${url}")`;
+}
+
+export function portfolioCssVariables(settings: PortfolioSettings, content?: Pick<PortfolioData, 'profile' | 'gallery'>): CSSProperties {
+  const galleryPhoto = content?.gallery.find((item) => item.published && portfolioBackgroundImage(item.imageUrl) !== 'none')?.imageUrl || '';
+  const portrait = content?.profile.portraitUrl || '';
   return {
     '--portfolio-accent': portfolioAccents[settings.accent],
     '--portfolio-depth': String(settings.sceneDepth / 100),
     '--motion-speed': String(settings.motionSpeed),
+    '--portfolio-background-image': portfolioBackgroundImage(galleryPhoto || portrait),
   } as CSSProperties;
 }
 

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function Projects() {
   const data = await readPortfolio();
   return (
-    <main className="min-h-screen flex flex-col" style={portfolioCssVariables(data.settings)}>
+    <main className="min-h-screen flex flex-col" style={portfolioCssVariables(data.settings, data)}>
       <Navbar />
       <ProjectsContent projects={data.projects.filter((project) => project.published)} journey={data.journey.filter((item) => item.published)} />
       <Footer />
