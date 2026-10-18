@@ -46,6 +46,8 @@
 .admin-topbar { border-color: var(--portfolio-line); background: color-mix(in srgb, var(--portfolio-paper) 91%, transparent); backdrop-filter: blur(18px); }
 .admin-topbar h1,
 .admin-welcome h2,
+.admin-card h2,
+.admin-entry h3,
 .admin-stat-card strong,
 .admin-checklist strong,
 .admin-card-heading h2,
