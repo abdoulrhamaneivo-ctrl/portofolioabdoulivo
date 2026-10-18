@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {
   ArrowUpRight,
   Award,
+  Braces,
   Briefcase,
   Check,
   ChevronRight,
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react';
 import { portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProject } from '@/lib/portfolio-shared';
 
-type Section = 'overview' | 'profile' | 'journey' | 'projects' | 'certificates' | 'experiments' | 'cv' | 'studio';
+type Section = 'overview' | 'profile' | 'skills' | 'journey' | 'projects' | 'certificates' | 'experiments' | 'cv' | 'studio';
 type Session = { configured: boolean; authenticated: boolean };
 
 const emptyProject = (): PortfolioProject => ({
@@ -51,6 +52,7 @@ const emptyExperiment = (): PortfolioExperiment => ({
 const sections: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Vue d’ensemble', icon: LayoutDashboard },
   { id: 'profile', label: 'Profil', icon: UserRound },
+  { id: 'skills', label: 'Compétences', icon: Braces },
   { id: 'journey', label: 'Parcours', icon: Briefcase },
   { id: 'projects', label: 'Projets', icon: FolderKanban },
   { id: 'certificates', label: 'Certificats', icon: Award },
@@ -351,6 +353,23 @@ export default function AdminPanel() {
             </section>
           )}
 
+          {section === 'skills' && (
+            <div className="max-w-5xl">
+              <div className="admin-list-heading"><SectionIntro title="Domaines de compétences" description="Présente tes domaines sans exagérer ton niveau. Indique les langages exacts, les bases réseau, les outils Office et les méthodes de projet que tu maîtrises réellement." /><button className="admin-secondary" onClick={() => setData({ ...data, skillGroups: [...data.skillGroups, { id: crypto.randomUUID(), title: '', items: '', level: 'À préciser', summary: '', published: false }] })}><Plus size={16} />Ajouter un domaine</button></div>
+              <div className="admin-skill-groups mt-6">{data.skillGroups.map((group, index) => <section className="admin-card" key={group.id}>
+                <div className="admin-card-heading"><div><p className="admin-eyebrow">DOMAINE / {String(index + 1).padStart(2, '0')}</p><h2>{group.title || 'Nouveau domaine'}</h2></div><button className="admin-icon-button" aria-label={`Supprimer ${group.title || 'ce domaine'}`} onClick={() => setData({ ...data, skillGroups: data.skillGroups.filter((item) => item.id !== group.id) })}><X size={18} /></button></div>
+                <div className="admin-form-grid mt-5">
+                  <Field label="Domaine"><input className="admin-input" value={group.title} onChange={(event) => setData({ ...data, skillGroups: data.skillGroups.map((item) => item.id === group.id ? { ...item, title: event.target.value } : item) })} placeholder="Programmation, réseaux, gestion de projet…" /></Field>
+                  <Field label="Niveau affiché"><input className="admin-input" value={group.level} onChange={(event) => setData({ ...data, skillGroups: data.skillGroups.map((item) => item.id === group.id ? { ...item, level: event.target.value } : item) })} placeholder="Bases, en apprentissage, pratique documentée…" /></Field>
+                  <Field label="Langages, outils ou compétences" hint="Sépare chaque élément par une virgule. N’ajoute que ce que tu as réellement pratiqué."><textarea className="admin-input min-h-24 resize-y" value={group.items} onChange={(event) => setData({ ...data, skillGroups: data.skillGroups.map((item) => item.id === group.id ? { ...item, items: event.target.value } : item) })} placeholder={group.id === 'programming' ? 'Inscris ici les noms exacts des langages utilisés.' : 'Ex. notions, outils ou méthodes…'} /></Field>
+                  <Field label="Contexte ou preuve"><textarea className="admin-input min-h-24 resize-y" value={group.summary} onChange={(event) => setData({ ...data, skillGroups: data.skillGroups.map((item) => item.id === group.id ? { ...item, summary: event.target.value } : item) })} placeholder="Où et comment as-tu mobilisé ces compétences ?" /></Field>
+                </div>
+                <div className="admin-check-row"><label><input type="checkbox" checked={group.published} onChange={(event) => setData({ ...data, skillGroups: data.skillGroups.map((item) => item.id === group.id ? { ...item, published: event.target.checked } : item) })} />Afficher ce domaine sur le site</label></div>
+              </section>)}</div>
+              <div className="admin-card-footer"><span className="text-xs text-neutral-400">Les compétences publiées apparaissent sur l’accueil et dans la cartographie.</span><button className="admin-primary" onClick={() => void saveData(data, 'Compétences enregistrées.')} disabled={busy}><Save size={16} />{busy ? 'Enregistrement…' : 'Enregistrer les compétences'}</button></div>
+            </div>
+          )}
+
           {section === 'journey' && (
             <div className="max-w-5xl">
               <div className="admin-list-heading"><SectionIntro title="Formation et expériences" description="Ajoute les étapes que tu peux présenter : études, stages, emplois ou contributions. Elles alimentent le récit chronologique de la page d’accueil." /><button className="admin-primary" onClick={() => setJourneyDraft(emptyJourneyItem())}><Plus size={16} />Ajouter une étape</button></div>
@@ -483,7 +502,7 @@ export default function AdminPanel() {
 
           {section === 'studio' && (
             <section className="admin-card max-w-4xl">
-              <SectionIntro title="Identité visuelle & mouvement" description="La navigation orbitale reprend celle du studio fourni. Ajuste sa couleur, son amplitude et son rythme." />
+              <SectionIntro title="Identité visuelle & mouvement" description="Le site reprend la palette ivoire, charbon et citron vert et la scène en couches du ZIP fourni. Ajuste l’accent et le rythme des animations." />
               <div className="admin-studio-grid mt-7">
                 <div>
                   <Field label="Couleur de signature" hint="La palette conserve le contraste avec les surfaces sombres et claires.">
@@ -491,17 +510,17 @@ export default function AdminPanel() {
                       {(Object.entries(portfolioAccents) as [PortfolioAccent, string][]).map(([accent, color]) => <button type="button" key={accent} aria-label={`Choisir ${accent}`} aria-pressed={data.settings.accent === accent} className="admin-accent-swatch" style={{ '--swatch': color } as CSSProperties} onClick={() => setData({ ...data, settings: { ...data.settings, accent } })}><span />{accent === 'lime' ? 'Vert citron' : accent === 'mint' ? 'Menthe' : accent === 'blue' ? 'Bleu' : 'Corail'}</button>)}
                     </div>
                   </Field>
-                  <Field label={`Amplitude de l’orbite · ${data.settings.sceneDepth}%`} hint="Règle l’écartement des six sections dans l’animation orbitale.">
+                  <Field label={`Profondeur des couches · ${data.settings.sceneDepth}%`} hint="Règle le relief de la scène du profil.">
                     <input className="admin-range" type="range" min="0" max="100" value={data.settings.sceneDepth} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, sceneDepth: Number(e.target.value) } })} />
                   </Field>
                   <Field label={`Rythme des animations · ${data.settings.motionSpeed.toFixed(2)}×`} hint="Le réglage respecte toujours la préférence système de réduction des animations.">
                     <input className="admin-range" type="range" min="0.65" max="1.35" step="0.05" value={data.settings.motionSpeed} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, motionSpeed: Number(e.target.value) } })} />
                   </Field>
                 </div>
-                <div className="admin-studio-preview" style={{ '--portfolio-accent': portfolioAccents[data.settings.accent], '--portfolio-depth': `${data.settings.sceneDepth}px`, '--portfolio-motion-speed': data.settings.motionSpeed } as CSSProperties}>
-                  <span className="admin-studio-preview-label">APERÇU DU STUDIO</span>
-                  <div className="admin-studio-orbit" aria-hidden="true"><div className="admin-studio-orbit-ring">{['PROFIL', 'PROJETS', 'PARCOURS', 'COMPÉTENCES', 'CERTIFICATS', 'CONTACT'].map((section, index) => <span key={section} style={{ transform: `rotateY(${index * 60}deg) translateZ(calc(112px + var(--portfolio-depth, 54px) * .2))` }}>{section}</span>)}</div></div>
-                </div>
+                  <div className="admin-studio-preview" style={{ '--portfolio-accent': portfolioAccents[data.settings.accent], '--portfolio-depth': `${data.settings.sceneDepth}px`, '--portfolio-motion-speed': data.settings.motionSpeed } as CSSProperties}>
+                    <span className="admin-studio-preview-label">APERÇU DU STUDIO</span>
+                    <div className="admin-studio-stack" aria-hidden="true"><span className="admin-studio-stack-back">01 / PROFIL</span><span className="admin-studio-stack-mid">THE LIVING PORTFOLIO</span><span className="admin-studio-stack-front">IVO ABDOULRHAMANE<br />COMPÉTENCES · PROJETS · PARCOURS</span></div>
+                  </div>
               </div>
               <div className="admin-card-footer"><span className="text-xs text-neutral-400">Les changements deviennent visibles après l’enregistrement.</span><button className="admin-primary" onClick={() => saveData(data, 'Identité visuelle enregistrée.')} disabled={busy}><Save size={16} />Enregistrer les réglages</button></div>
             </section>
@@ -515,6 +534,7 @@ export default function AdminPanel() {
 function Overview({ data, projects, certificates, onSelect }: { data: PortfolioData; projects: number; certificates: number; onSelect: (section: Section) => void }) {
   const setup = [
     { section: 'profile' as const, title: 'Présente ton profil', detail: 'Nom, positionnement, portrait et présentation', done: Boolean(data.profile.fullName && data.profile.title), icon: <UserRound size={14} /> },
+    { section: 'skills' as const, title: 'Décris tes compétences', detail: 'Langages, réseaux, outils Office et gestion de projet', done: data.skillGroups.some((group) => group.published && group.items.trim()), icon: <Braces size={14} /> },
     { section: 'journey' as const, title: 'Raconte ton parcours', detail: 'Études, expériences et contributions', done: data.journey.some((item) => item.published), icon: <Briefcase size={14} /> },
     { section: 'projects' as const, title: 'Ajoute tes projets', detail: 'Réalisations, rôle et preuves', done: data.projects.some((item) => item.published), icon: <FolderKanban size={14} /> },
     { section: 'certificates' as const, title: 'Organise tes certificats', detail: 'Documents, compétences et vérification', done: data.certificates.some((item) => item.published), icon: <Award size={14} /> },

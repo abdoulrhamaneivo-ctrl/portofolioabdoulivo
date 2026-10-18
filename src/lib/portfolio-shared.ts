@@ -59,6 +59,15 @@ export type PortfolioExperiment = {
   published: boolean;
 };
 
+export type PortfolioSkillGroup = {
+  id: string;
+  title: string;
+  items: string;
+  level: string;
+  summary: string;
+  published: boolean;
+};
+
 export type PortfolioAccent = 'lime' | 'mint' | 'blue' | 'coral';
 
 export type PortfolioSettings = {
@@ -72,6 +81,7 @@ export type PortfolioData = {
   journey: PortfolioJourneyItem[];
   projects: PortfolioProject[];
   certificates: PortfolioCertificate[];
+  skillGroups: PortfolioSkillGroup[];
   experiments: PortfolioExperiment[];
   settings: PortfolioSettings;
   cv: { fileUrl: string; fileName: string; updatedAt: string };
@@ -82,6 +92,12 @@ export const emptyPortfolio: PortfolioData = {
   journey: [],
   projects: [],
   certificates: [],
+  skillGroups: [
+    { id: 'programming', title: 'Programmation', items: '', level: 'À préciser', summary: 'Langages et environnements à renseigner depuis l’administration.', published: true },
+    { id: 'networks', title: 'Réseaux & assistance', items: 'Bases en réseaux', level: 'Bases', summary: 'Assistance informatique et accompagnement des utilisateurs.', published: true },
+    { id: 'office', title: 'Bureautique & Office', items: 'Administration des outils Office', level: 'À préciser', summary: '', published: true },
+    { id: 'project-management', title: 'Gestion de projet', items: 'Gestion de projet', level: 'À préciser', summary: '', published: true },
+  ],
   experiments: [],
   settings: { accent: 'lime', sceneDepth: 54, motionSpeed: 1 },
   cv: { fileUrl: '', fileName: '', updatedAt: '' },

@@ -1,5 +1,5 @@
 import './globals.css'
-import './zip-reference.css'
+import './studio-reference.css'
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, Hanken_Grotesk, JetBrains_Mono } from "next/font/google";
 import ThemeProvider from '@/components/ThemeProvider'

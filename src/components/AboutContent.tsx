@@ -1,76 +1,41 @@
+import Image from 'next/image';
 import Link from 'next/link';
+import { ArrowUpRight, Download, Mail } from 'lucide-react';
 import type { PortfolioData } from '@/lib/portfolio';
-import { getJourneyCapabilities } from '@/lib/competences';
 import { safeExternalUrl } from '@/lib/urls';
-import AboutPortraitCard from './AboutPortraitCard';
 
-function splitValues(value: string) {
-  return Array.from(new Set(value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean)));
-}
-
-export default function AboutContent({ data }: { data: PortfolioData }) {
-  const name = data.profile.fullName.trim();
-  const skills = Array.from(new Set([
-    ...data.projects.filter((project) => project.published).flatMap((project) => splitValues(project.technologies)),
-    ...data.certificates.filter((certificate) => certificate.published).flatMap((certificate) => splitValues(certificate.skills)),
-  ]));
-  const journey = data.journey.filter((item) => item.published).sort((a, b) => {
+function sortJourney(items: PortfolioData['journey']) {
+  return [...items].filter((item) => item.published).sort((a, b) => {
     const year = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
     return year(b.period) - year(a.period);
   });
-  const journeyCapabilities = getJourneyCapabilities(journey);
-  const linkedin = safeExternalUrl(data.profile.linkedin);
-  const github = safeExternalUrl(data.profile.github);
+}
 
-  return <section className="portfolio-about-page">
-    <header className="portfolio-page-heading">
-      <p className="portfolio-page-kicker"><span /> LE RÉCIT / 01</p>
-      <h1>{name ? `À propos de ${name}` : 'Un parcours, une façon de voir.'}</h1>
-      {data.profile.title && <p className="portfolio-page-lead">{data.profile.title}</p>}
-    </header>
+export default function AboutContent({ data }: { data: PortfolioData }) {
+  const { profile, cv } = data;
+  const name = profile.fullName.trim() || 'Mon parcours';
+  const journey = sortJourney(data.journey);
+  const skills = data.skillGroups.filter((group) => group.published);
+  const linkedin = safeExternalUrl(profile.linkedin);
+  const github = safeExternalUrl(profile.github);
 
-    <div className="portfolio-about-grid">
-      <section className="portfolio-about-story">
-        <p className="portfolio-about-eyebrow">DERRIÈRE LES PROJETS</p>
-        <h2>{data.profile.about ? 'Ce qui me met en mouvement.' : 'Chaque parcours commence par une curiosité.'}</h2>
-        <p className="portfolio-about-copy">{data.profile.about || data.profile.introduction || 'Cette page raconte le parcours, les objectifs et les sujets qui comptent. Complète le profil depuis l’administration pour présenter ton histoire avec tes propres mots.'}</p>
-        {skills.length > 0 && <div className="portfolio-about-skills" aria-label="Compétences reliées aux projets et certificats">{skills.map((skill) => <span key={skill}>{skill}</span>)}</div>}
-        <div className="portfolio-about-links">
-          <Link href="/projects">Voir les projets <span aria-hidden="true">↗</span></Link>
-          <Link href="/certifications">Parcourir les preuves <span aria-hidden="true">↗</span></Link>
-          <Link href="/cv">Consulter le CV <span aria-hidden="true">↗</span></Link>
-        </div>
-      </section>
+  return <section className="zip-about-page zip-page-shell">
+    <header className="zip-page-heading zip-reveal"><div><p className="zip-kicker">PROFIL <span>/</span> PRÉSENTATION</p><h1>Un parcours,<br /><em>des solutions.</em></h1></div><p>{profile.title || 'Transformation digitale, assistance informatique et conception de solutions numériques.'}</p><div className="zip-page-counts"><strong>{String(journey.length).padStart(2, '0')}</strong><span>étapes<br />de parcours</span><i /><strong>{String(skills.length).padStart(2, '0')}</strong><span>domaines<br />de compétence</span></div></header>
 
-      <AboutPortraitCard name={name} title={data.profile.title} portraitUrl={data.profile.portraitUrl} projectCount={data.projects.filter((item) => item.published).length} certificateCount={data.certificates.filter((item) => item.published).length} />
-    </div>
-
-    <section className="portfolio-about-timeline" id="parcours">
-      <header><p className="portfolio-about-eyebrow">02 / LES ÉTAPES</p><h2>Apprendre, contribuer, avancer.</h2><p>Une chronologie nourrie par les expériences et formations publiées dans l’administration.</p></header>
-      {journey.length ? <ol>{journey.map((item, index) => <li id={`experience-${item.id}`} key={item.id} className="portfolio-timeline-entry">
-        <span className="portfolio-timeline-index">{String(index + 1).padStart(2, '0')}</span>
-        <div><p className="portfolio-timeline-meta"><span>{item.category}</span>{item.period && <span>{item.period}</span>}</p><h3>{item.title}</h3>{item.organization && <p className="portfolio-timeline-org">{item.organization}</p>}{item.description && <p className="portfolio-timeline-copy">{item.description}</p>}</div>
-      </li>)}</ol> : <div className="portfolio-timeline-empty"><span>01</span><p>Les étapes du parcours apparaîtront ici après leur publication dans l’administration.</p></div>}
+    <section className="zip-profile-block zip-reveal" id="presentation">
+      <div className="zip-profile-image">{profile.portraitUrl ? <Image src={profile.portraitUrl} alt={`Portrait de ${name}`} fill sizes="(max-width: 800px) 100vw, 40vw" priority unoptimized /> : <div className="zip-profile-placeholder"><span>{name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()}</span><small>PORTRAIT À AJOUTER</small></div>}<span>IVO / PROFIL</span></div>
+      <div className="zip-profile-copy"><p className="zip-kicker">QUI JE SUIS</p><h2>{name}<em>{profile.title || 'Acteur de la transformation digitale'}</em></h2><p>{profile.about || profile.introduction || 'Cette présentation se complète depuis l’administration avec ton histoire, tes objectifs et les expériences qui comptent pour toi.'}</p><div className="zip-profile-tags">{skills.map((group) => <span key={group.id}>{group.title}</span>)}</div><div className="zip-profile-actions"><Link className="zip-button zip-button-accent" href="/competences">Mes compétences <ArrowUpRight size={15} /></Link>{cv.fileUrl && <Link className="zip-button zip-button-outline" href="/cv">CV consultable <Download size={15} /></Link>}</div></div>
     </section>
 
-    {journeyCapabilities.length > 0 && <section className="portfolio-about-capabilities" aria-labelledby="about-capabilities-title">
-      <header><p className="portfolio-about-eyebrow">03 / SAVOIR-FAIRE</p><h2 id="about-capabilities-title">Ce que mes expériences montrent.</h2><p>Les compétences déjà pratiquées, les contributions collectives et les sujets en formation restent clairement distingués.</p></header>
-      <div className="skills-capability-grid">{journeyCapabilities.map((capability) => <article className="skills-capability-card" key={capability.name}>
-        <div className="skills-capability-meta"><span>{capability.status}</span><time>{capability.source.period}</time></div>
-        <h3>{capability.name}</h3><p>{capability.summary}</p>
-        <Link href={`#experience-${capability.source.id}`}>Étape : {capability.source.title}<span aria-hidden="true">↗</span></Link>
-      </article>)}</div>
-      <Link href="/competences" className="portfolio-about-capabilities-link">Voir la cartographie détaillée <span aria-hidden="true">⟶</span></Link>
-    </section>}
-
-    <section className="portfolio-about-contact">
-      <div><p className="portfolio-about-eyebrow">03 / RESTONS EN CONTACT</p><h2>La suite se construit dans l’échange.</h2><p>Pour parler d’un projet, d’une collaboration ou d’une opportunité professionnelle.</p></div>
-      <div className="portfolio-about-contact-links">
-        {data.profile.email && <a href={`mailto:${data.profile.email}`}><span>E-MAIL</span><strong>{data.profile.email}</strong><i aria-hidden="true">↗</i></a>}
-        {linkedin && <a href={linkedin} target="_blank" rel="noreferrer"><span>LINKEDIN</span><strong>Échanger sur mon parcours</strong><i aria-hidden="true">↗</i></a>}
-        {github && <a href={github} target="_blank" rel="noreferrer"><span>GITHUB</span><strong>Voir les réalisations</strong><i aria-hidden="true">↗</i></a>}
-        {!data.profile.email && !linkedin && !github && <Link href="/admin">Ajouter les coordonnées depuis l’administration <span aria-hidden="true">↗</span></Link>}
-      </div>
+    <section className="zip-about-journey" id="parcours"><header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> EXPÉRIENCES</p><h2>Les étapes qui <em>comptent.</em></h2></div><p>Études, expériences et contributions, réunies dans un fil chronologique compact.</p></header>
+      {journey.length ? <ol className="zip-about-timeline">{journey.map((item, index) => <li className="zip-about-step zip-reveal" id={`experience-${item.id}`} key={item.id}><span className="zip-about-step-number">{String(index + 1).padStart(2, '0')}</span><div><p className="zip-about-step-meta">{item.category}{item.period && <span>{item.period}</span>}</p><h3>{item.title}</h3>{item.organization && <strong>{item.organization}</strong>}{item.description && <p>{item.description}</p>}</div></li>)}</ol> : <div className="zip-empty-inline"><span className="zip-empty-mark">01</span><div><h3>Le parcours détaillé apparaîtra ici.</h3><p>Les étapes publiées depuis l’administration s’afficheront dans cette chronologie.</p></div></div>}
     </section>
+
+    <section className="zip-about-contact" id="contact"><div className="zip-about-contact-copy zip-reveal"><p className="zip-kicker">RESTONS EN CONTACT</p><h2>À propos d’un projet,<br /><em>parlons-en.</em></h2><p>Une opportunité, une collaboration ou une question sur mon parcours.</p></div><div className="zip-about-contact-links zip-reveal">
+      {profile.email && <a href={`mailto:${profile.email}`}><Mail size={16} /><span><small>E-MAIL</small><strong>{profile.email}</strong></span><ArrowUpRight size={16} /></a>}
+      {linkedin && <a href={linkedin} target="_blank" rel="noreferrer"><span className="zip-social-mark">in</span><span><small>LINKEDIN</small><strong>Voir mon profil</strong></span><ArrowUpRight size={16} /></a>}
+      {github && <a href={github} target="_blank" rel="noreferrer"><span className="zip-social-mark">GH</span><span><small>GITHUB</small><strong>Voir mes réalisations</strong></span><ArrowUpRight size={16} /></a>}
+      {!profile.email && !linkedin && !github && <Link href="/admin"><span className="zip-social-mark">↗</span><span><small>COORDONNÉES</small><strong>Mes liens professionnels</strong></span><ArrowUpRight size={16} /></Link>}
+    </div></section>
   </section>;
 }

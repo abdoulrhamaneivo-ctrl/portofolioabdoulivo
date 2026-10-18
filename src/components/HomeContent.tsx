@@ -1,448 +1,174 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { PortfolioCertificate, PortfolioData, PortfolioProject } from '@/lib/portfolio';
-import { getJourneyCapabilities } from '@/lib/competences';
-import { safeExternalUrl } from '@/lib/urls';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Code2, Layers3, Network, PanelsTopLeft } from 'lucide-react';
+import type { PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
 
-function valuesFrom(items: string[]) {
-  return Array.from(new Set(items.flatMap((item) => item.split(/[,;\n]/).map((value) => value.trim()).filter(Boolean))));
+function list(value: string) {
+  return Array.from(new Set(value.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean)));
 }
 
-function useReducedMotionFlag() {
-  const reducedMotion = useRef(false);
-  useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => { reducedMotion.current = preference.matches; };
-    update();
-    preference.addEventListener('change', update);
-    return () => preference.removeEventListener('change', update);
-  }, []);
-  return reducedMotion;
+function sortJourney(items: PortfolioJourneyItem[]) {
+  return [...items].filter((item) => item.published).sort((a, b) => {
+    const year = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
+    return year(b.period) - year(a.period);
+  });
 }
 
-function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
-  const reducedMotion = useReducedMotionFlag();
-  const depth = 0.72 + data.settings.sceneDepth / 100 * 0.55;
-  const sections = [
-    { label: 'Mon profil', href: '#recit' },
-    { label: 'Projets', href: '#projets' },
-    { label: 'Parcours', href: '#parcours' },
-    { label: 'Compétences', href: '#competences' },
-    { label: 'Certificats', href: '#certificats' },
-    { label: 'Contact', href: '#contact' },
-  ];
+function SkillTile({ group, index }: { group: PortfolioSkillGroup; index: number }) {
+  const tags = list(group.items);
+  const icons = [Code2, Network, PanelsTopLeft, Layers3];
+  const Icon = icons[index % icons.length];
+  return <article className="zip-skill-card zip-reveal" style={{ '--delay': `${index * 65}ms` } as CSSProperties}>
+    <div className="zip-skill-card-top"><span className="zip-skill-icon"><Icon size={18} strokeWidth={1.7} /></span><span className="zip-skill-index">{String(index + 1).padStart(2, '0')}</span></div>
+    <h3>{group.title}</h3>
+    <div className="zip-skill-tags">{tags.length ? tags.map((tag) => <span key={tag}>{tag}</span>) : <span>Langages à préciser</span>}</div>
+    {group.summary && <p>{group.summary}</p>}
+    <div className="zip-skill-status"><i aria-hidden="true" />{group.level || 'Niveau à préciser'}</div>
+  </article>;
+}
 
-  return (
-    <div className="story-zip-scene-wrap">
-      <div
-        className="story-zip-stage"
-        role="group"
-        aria-label="Navigation orbitale du portfolio"
-        onPointerMove={(event) => {
-          if (event.pointerType !== 'mouse' || reducedMotion.current) return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-          const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-          event.currentTarget.style.setProperty('--scene-tilt-x', `${-y * 12 * depth}deg`);
-          event.currentTarget.style.setProperty('--scene-tilt-y', `${x * 18 * depth}deg`);
-        }}
-        onPointerLeave={(event) => {
-          event.currentTarget.style.setProperty('--scene-tilt-x', '0deg');
-          event.currentTarget.style.setProperty('--scene-tilt-y', '0deg');
-        }}
-      >
-        <span className="story-zip-scene-label">NAVIGATION / 06 SECTIONS</span>
-        <div className="story-zip-scene-photo" aria-hidden="true"><Image src="/assets/images/projects/project5.jpg" alt="" fill sizes="(max-width: 680px) 170px, 280px" className="story-zip-scene-photo-image" unoptimized /></div>
-        <div className="story-zip-rig story-zip-rig--orbit">
-          <div className="story-zip-orbit-ring" aria-label="Sections à explorer" style={{ '--orbit-radius-config': `${190 * depth}px` } as CSSProperties}>
-            {sections.map((section, index) => <Link href={section.href} className="story-zip-orbit-node" key={section.href} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--orbit-radius))` }}>{section.label}</Link>)}
-          </div>
-        </div>
-        <span className="story-zip-beam" aria-hidden="true" />
-        <span className="story-zip-scene-hint">Survole pour faire tourner · choisis une section</span>
+function HeroScene({ data }: { data: PortfolioData }) {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [opened, setOpened] = useState(false);
+  const name = data.profile.fullName.trim() || 'Mon profil';
+  const initials = name.split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase();
+
+  const tilt = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - .5;
+    const y = (event.clientY - rect.top) / rect.height - .5;
+    event.currentTarget.style.setProperty('--tilt-x', `${-y * 8}deg`);
+    event.currentTarget.style.setProperty('--tilt-y', `${x * 10}deg`);
+  };
+  const resetTilt = (event: PointerEvent<HTMLDivElement>) => {
+    event.currentTarget.style.setProperty('--tilt-x', '0deg');
+    event.currentTarget.style.setProperty('--tilt-y', '0deg');
+  };
+
+  return <div className="zip-scene-wrap zip-reveal">
+    <div ref={sceneRef} className={`zip-scene${opened ? ' is-open' : ''}`} onPointerMove={tilt} onPointerLeave={resetTilt}>
+      <span className="zip-scene-cross zip-scene-cross-a" aria-hidden="true">+</span><span className="zip-scene-cross zip-scene-cross-b" aria-hidden="true">+</span>
+      <div className="zip-scene-grid" aria-hidden="true" />
+      <div className="zip-scene-object" aria-hidden="true" style={{ '--scene-back-z': `${-24 - data.settings.sceneDepth * .48}px`, '--scene-mid-z': `${-9 - data.settings.sceneDepth * .16}px`, '--scene-front-z': `${15 + data.settings.sceneDepth * .22}px` } as CSSProperties}>
+        <div className="zip-scene-layer zip-scene-layer-back"><span>01 / PROFIL</span><b>{initials}</b><small>IVO ABDOULRHAMANE NESTOR</small></div>
+        <div className="zip-scene-layer zip-scene-layer-mid"><span>PORTFOLIO NUMÉRIQUE</span><div className="zip-scene-photo">{data.profile.portraitUrl ? <Image src={data.profile.portraitUrl} alt="" fill sizes="(max-width: 800px) 40vw, 270px" unoptimized /> : <b>{initials}</b>}</div><i className="zip-scene-beam" /></div>
+        <div className="zip-scene-layer zip-scene-layer-front"><span>PARCOURS / SAVOIR-FAIRE</span><strong>{name}</strong><small>{data.profile.title || 'Solutions numériques & transformation digitale'}</small><div className="zip-scene-bars"><i /><i /><i /><i /><i /><i /><i /><i /></div></div>
+        <span className="zip-scene-float zip-scene-float-one">PROJETS <b>↗</b></span><span className="zip-scene-float zip-scene-float-two">SKILLS <b>✳</b></span>
       </div>
-      <div className="story-zip-scene-caption"><span>THE LIVING PORTFOLIO</span><span>{projectCount} projets · {certificateCount} certificats · {skillCount} compétences</span></div>
+      <button className="zip-scene-toggle" type="button" aria-pressed={opened} onClick={() => setOpened((value) => !value)}>{opened ? 'Rassembler les couches' : 'Explorer les couches'} <ArrowUpRight size={15} /></button>
+      <span className="zip-scene-caption">INTERFACE EN MOUVEMENT · SURVOLE OU ACTIVE</span>
     </div>
-  );
-}
-
-function ProjectStory({ project, index }: { project: PortfolioProject; index: number }) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const reducedMotion = useReducedMotionFlag();
-  return (
-    <Link
-      href={`/projects/${project.id}`}
-      className={`story-project story-project--${index % 2 ? 'reverse' : 'forward'} story-reveal`}
-      onPointerMove={(event) => {
-        if (event.pointerType !== 'mouse' || reducedMotion.current) return;
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-        const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-        const depth = Number(getComputedStyle(event.currentTarget.closest('main') || document.documentElement).getPropertyValue('--portfolio-depth')) || 0;
-        event.currentTarget.style.setProperty('--project-tilt-x', `${-y * 12 * depth}deg`);
-        event.currentTarget.style.setProperty('--project-tilt-y', `${x * 12 * depth}deg`);
-        event.currentTarget.style.setProperty('--project-light-x', `${(x + 0.5) * 100}%`);
-        event.currentTarget.style.setProperty('--project-light-y', `${(y + 0.5) * 100}%`);
-      }}
-      onPointerLeave={(event) => {
-        event.currentTarget.style.setProperty('--project-tilt-x', '0deg');
-        event.currentTarget.style.setProperty('--project-tilt-y', '0deg');
-        event.currentTarget.style.setProperty('--project-light-x', '50%');
-        event.currentTarget.style.setProperty('--project-light-y', '45%');
-      }}
-    >
-      <div className="story-project-visual">
-        <span className="story-project-frame" />
-        {project.imageUrl && !imageFailed ? (
-          <Image src={project.imageUrl} alt={project.title} fill sizes="(max-width: 800px) 100vw, 55vw" className="story-project-image" unoptimized onError={() => setImageFailed(true)} />
-        ) : (
-          <div className="story-project-placeholder" aria-hidden="true"><span>{String(index + 1).padStart(2, '0')}</span><i>✳</i></div>
-        )}
-        <span className="story-project-index">PROJET / {String(index + 1).padStart(2, '0')}</span>
-      </div>
-      <div className="story-project-copy">
-        <p className="story-kicker">Étude de cas <span>↗</span></p>
-        <h3>{project.title}</h3>
-        {project.summary && <p className="story-project-summary">{project.summary}</p>}
-        {project.contribution && <p className="story-project-contribution"><span>MON RÔLE</span>{project.contribution}</p>}
-        {project.technologies && <p className="story-project-tech">{project.technologies.split(/[,;]+/).map((tech) => <span key={tech.trim()}>{tech.trim()}</span>)}</p>}
-        <span className="story-read-link">Explorer le projet <span aria-hidden="true">⟶</span></span>
-      </div>
-    </Link>
-  );
-}
-
-type SkillEvidence = {
-  name: string;
-  projects: PortfolioProject[];
-  certificates: PortfolioCertificate[];
-};
-
-function SkillEvidenceExplorer({ projects, certificates }: { projects: PortfolioProject[]; certificates: PortfolioCertificate[] }) {
-  const evidence = useMemo(() => {
-    const entries = new Map<string, SkillEvidence>();
-    const getEntry = (name: string) => {
-      const key = name.toLocaleLowerCase('fr-FR');
-      let entry = entries.get(key);
-      if (!entry) {
-        entry = { name, projects: [], certificates: [] };
-        entries.set(key, entry);
-      }
-      return entry;
-    };
-
-    projects.forEach((project) => {
-      valuesFrom([project.technologies]).forEach((name) => getEntry(name).projects.push(project));
-    });
-    certificates.forEach((certificate) => {
-      valuesFrom([certificate.skills]).forEach((name) => getEntry(name).certificates.push(certificate));
-    });
-
-    return Array.from(entries.values())
-      .sort((a, b) => (b.projects.length + b.certificates.length) - (a.projects.length + a.certificates.length) || a.name.localeCompare(b.name, 'fr'))
-      .slice(0, 14);
-  }, [projects, certificates]);
-  const [activeName, setActiveName] = useState('');
-  const active = evidence.find((item) => item.name === activeName) || evidence[0];
-
-  if (!evidence.length) return null;
-
-  return (
-    <div className="story-skill-explorer">
-      <div className="story-skill-explorer-head">
-        <span><i aria-hidden="true" /> CARTOGRAPHIE DES SAVOIR-FAIRE</span>
-        <span>{evidence.length.toString().padStart(2, '0')} NŒUDS · SOURCES PUBLIÉES</span>
-      </div>
-      <div className="story-skill-node-grid" role="group" aria-label="Choisir une compétence pour afficher les projets et certificats associés">
-        {evidence.map((item, index) => {
-          const isActive = item.name === active.name;
-          const evidenceCount = item.projects.length + item.certificates.length;
-          return (
-            <button
-              key={item.name}
-              type="button"
-              className={`story-skill-node${isActive ? ' is-active' : ''}`}
-              aria-pressed={isActive}
-              aria-label={`${item.name}, ${evidenceCount} preuve${evidenceCount === 1 ? '' : 's'}`}
-              onClick={() => setActiveName(item.name)}
-              style={{ transitionDelay: `${Math.min(index, 10) * 25}ms` }}
-            >
-              <span className="story-skill-node-label">{item.name}</span>
-              <span className="story-skill-node-count">{evidenceCount.toString().padStart(2, '0')} preuve{evidenceCount === 1 ? '' : 's'}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="story-skill-evidence" key={active.name} aria-live="polite" aria-atomic="true">
-        <div className="story-skill-evidence-heading">
-          <div><span>RELATIONS / {active.projects.length + active.certificates.length} SOURCES</span><h3>{active.name}</h3></div>
-          <span className="story-skill-evidence-pulse"><i /> LIÉ AUX PREUVES</span>
-        </div>
-        <div className="story-skill-evidence-grid">
-          <div className="story-skill-evidence-group">
-            <div className="story-skill-evidence-label"><span>PROJETS</span><span>{active.projects.length.toString().padStart(2, '0')}</span></div>
-            {active.projects.length ? active.projects.map((project) => (
-              <Link className="story-skill-source" key={project.id} href={`/projects/${project.id}`}>
-                <small>TECHNOLOGIE UTILISÉE</small>
-                <strong>{project.title}</strong>
-                <span>{project.contribution || project.summary || 'Voir l’étude de cas et sa réalisation.'}</span>
-                <i aria-hidden="true">↗</i>
-              </Link>
-            )) : <p className="story-skill-source-empty">Aucun projet publié ne cite encore cette compétence.</p>}
-          </div>
-          <div className="story-skill-evidence-group">
-            <div className="story-skill-evidence-label"><span>CERTIFICATS</span><span>{active.certificates.length.toString().padStart(2, '0')}</span></div>
-            {active.certificates.length ? active.certificates.map((certificate) => (
-              <Link className="story-skill-source" key={certificate.id} href={`/certifications#certificate-${certificate.id}`}>
-                <small>{certificate.issuer || certificate.type || 'APPRENTISSAGE DOCUMENTÉ'}</small>
-                <strong>{certificate.title}</strong>
-                <span>{[certificate.domain, certificate.date].filter(Boolean).join(' · ') || 'Consulter la fiche de cette preuve.'}</span>
-                <i aria-hidden="true">↗</i>
-              </Link>
-            )) : <p className="story-skill-source-empty">Aucun certificat publié ne détaille encore cette compétence.</p>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CertificateCard({ certificate, index }: { certificate: PortfolioCertificate; index: number }) {
-  const [isFlipped, setIsFlipped] = useState(false);
-  const frontButtonRef = useRef<HTMLButtonElement>(null);
-  const backButtonRef = useRef<HTMLButtonElement>(null);
-  const verificationUrl = safeExternalUrl(certificate.verificationUrl);
-  const certificateSkills = valuesFrom([certificate.skills]);
-  const actionLabel = verificationUrl ? 'Vérifier la certification ↗' : certificate.fileUrl ? 'Consulter le document ↗' : 'Voir dans la bibliothèque ↗';
-  const certificateLink = (label: string, tabIndex: number) => verificationUrl
-    ? <a href={verificationUrl} target="_blank" rel="noreferrer" tabIndex={tabIndex}>{label}</a>
-    : <Link href={certificate.fileUrl || '/certifications'} target={certificate.fileUrl ? '_blank' : undefined} rel={certificate.fileUrl ? 'noreferrer' : undefined} tabIndex={tabIndex}>{label}</Link>;
-
-  return (
-    <article
-      id={`certificate-${certificate.id}`}
-      className={`story-certificate-card story-reveal${isFlipped ? ' is-flipped' : ''}`}
-      onPointerLeave={(event) => { if (event.pointerType === 'mouse' && !event.currentTarget.contains(document.activeElement)) setIsFlipped(false); }}
-    >
-      <div className="story-certificate-card-inner">
-        <div className="story-certificate-face story-certificate-front" aria-hidden={isFlipped}>
-          <span className="story-certificate-index">0{index + 1} / PREUVE</span>
-          <span className="story-certificate-seal" aria-hidden="true">✳</span>
-          <span className="story-certificate-title">{certificate.title}</span>
-          <span className="story-certificate-meta">{[certificate.issuer, certificate.date && new Date(certificate.date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long' })].filter(Boolean).join(' · ')}</span>
-          {certificate.domain && <span className="story-certificate-domain">{certificate.domain}</span>}
-          <div className="story-certificate-actions">
-            <button ref={frontButtonRef} type="button" tabIndex={isFlipped ? -1 : 0} onClick={() => { setIsFlipped(true); requestAnimationFrame(() => backButtonRef.current?.focus()); }}>Détails ↗</button>
-            {certificateLink(actionLabel, isFlipped ? -1 : 0)}
-          </div>
-        </div>
-        <div className="story-certificate-face story-certificate-back" aria-hidden={!isFlipped}>
-          <span className="story-certificate-index">DÉTAILS / 0{index + 1}</span>
-          <strong className="story-certificate-back-title">Ce que cette preuve couvre</strong>
-          <span className="story-certificate-type">{certificate.type || 'Certification'}{certificate.level ? ` · ${certificate.level}` : ''}</span>
-          {certificateSkills.length ? <div className="story-certificate-skills">{certificateSkills.map((skill) => <span key={skill}>{skill}</span>)}</div> : <p className="story-certificate-missing">Ajoute les compétences couvertes depuis l’administration pour documenter cette preuve.</p>}
-          <div className="story-certificate-actions">
-            <button ref={backButtonRef} type="button" tabIndex={isFlipped ? 0 : -1} onClick={() => { setIsFlipped(false); requestAnimationFrame(() => frontButtonRef.current?.focus()); }}>Retour ↶</button>
-            {certificateLink(actionLabel, isFlipped ? 0 : -1)}
-          </div>
-        </div>
-      </div>
-    </article>
-  );
+    <div className="zip-scene-foot"><span>01 / LE PROFIL</span><span>Une présentation qui se découvre en profondeur</span></div>
+  </div>;
 }
 
 export default function HomeContent({ data }: { data: PortfolioData }) {
-  const progressBarRef = useRef<HTMLSpanElement>(null);
-  const reducedMotion = useReducedMotionFlag();
-  const publishedJourney = useMemo(() => data.journey.filter((item) => item.published).sort((a, b) => {
-    const startYear = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
-    return startYear(b.period) - startYear(a.period);
-  }), [data.journey]);
-  const publishedProjects = useMemo(() => data.projects.filter((item) => item.published), [data.projects]);
-  const publishedExperiments = useMemo(() => data.experiments.filter((item) => item.published), [data.experiments]);
-  const selectedProjects = useMemo(() => {
-    const featured = publishedProjects.filter((item) => item.featured);
-    return (featured.length ? featured : publishedProjects).slice(0, 3);
-  }, [publishedProjects]);
-  const publishedCertificates = useMemo(() => data.certificates.filter((item) => item.published), [data.certificates]);
-  const selectedCertificates = useMemo(() => {
-    const featured = publishedCertificates.filter((item) => item.featured);
-    return (featured.length ? featured : publishedCertificates).slice(0, 3);
-  }, [publishedCertificates]);
-  const movingTopics = useMemo(() => {
-    const content = [
-      { title: data.profile.title || 'Mon profil', category: 'IDENTITÉ', imageUrl: '' },
-      ...publishedProjects.map((item) => ({ title: item.title, category: 'PROJET', imageUrl: item.imageUrl })),
-      ...publishedCertificates.map((item) => ({ title: item.title, category: 'CERTIFICAT', imageUrl: '' })),
-      ...publishedJourney.map((item) => ({ title: item.title, category: item.category.toUpperCase(), imageUrl: '' })),
-      ...publishedExperiments.map((item) => ({ title: item.title, category: 'LABORATOIRE', imageUrl: '' })),
-    ];
-    const fallback = [
-      { title: 'Projets', category: 'ÉTUDES DE CAS', imageUrl: '/assets/images/projects/project5.jpg' },
-      { title: 'Parcours', category: 'ÉTAPES', imageUrl: '/assets/images/about/coder.jpg' },
-      { title: 'Compétences', category: 'SAVOIR-FAIRE', imageUrl: '/assets/images/projects/project3.png' },
-      { title: 'Certificats', category: 'APPRENTISSAGES', imageUrl: '/assets/images/posts/post2.jpg' },
-      { title: 'Expérimentations', category: 'LABORATOIRE', imageUrl: '/assets/images/posts/post3.jpg' },
-      { title: 'Contact', category: 'LA SUITE', imageUrl: '/assets/images/projects/project2.jpg' },
-      { title: 'Curriculum vitæ', category: 'DOCUMENT', imageUrl: '/assets/images/posts/post1.jpg' },
-    ];
-    const unique = content.filter((item, index, items) => items.findIndex((candidate) => candidate.title === item.title) === index);
-    return [...unique, ...fallback.filter((item) => !unique.some((candidate) => candidate.title === item.title))].slice(0, 8);
-  }, [data.profile.title, publishedProjects, publishedCertificates, publishedJourney, publishedExperiments]);
-  const skills = useMemo(() => valuesFrom([
-    ...publishedProjects.map((item) => item.technologies),
-    ...publishedCertificates.map((item) => item.skills),
-  ]), [publishedProjects, publishedCertificates]);
-  const journeyCapabilities = useMemo(() => getJourneyCapabilities(publishedJourney), [publishedJourney]);
+  const progressRef = useRef<HTMLSpanElement>(null);
+  const profile = data.profile;
+  const name = profile.fullName.trim();
+  const skills = useMemo(() => data.skillGroups.filter((group) => group.published), [data.skillGroups]);
+  const journey = useMemo(() => sortJourney(data.journey), [data.journey]);
+  const projects = useMemo(() => data.projects.filter((project) => project.published), [data.projects]);
+  const certificates = useMemo(() => data.certificates.filter((certificate) => certificate.published), [data.certificates]);
+  const topics = useMemo(() => [
+    'DIGITALISATION', 'RÉSEAUX & ASSISTANCE', 'GESTION DE PROJET', 'OUTILS OFFICE', 'PROGRAMMATION', 'CONCEPTION NUMÉRIQUE',
+  ], []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.add('motion-ready');
-    const reveals = Array.from(document.querySelectorAll<HTMLElement>('.story-reveal'));
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.14, rootMargin: '0px 0px -48px 0px' });
-    reveals.forEach((item) => observer.observe(item));
-
-    const timeline = document.querySelector<HTMLElement>('.story-timeline');
-    let frame: number | null = null;
-    const updateProgress = () => {
-      if (frame !== null) return;
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        const scrollable = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
-        progressBarRef.current?.style.setProperty('transform', `scaleX(${progress})`);
-        if (timeline) {
-          const top = timeline.getBoundingClientRect().top;
-          const beamHeight = Math.max(0, Math.min(timeline.offsetHeight - 21, window.innerHeight * 0.68 - top));
-          timeline.style.setProperty('--timeline-beam-progress', `${beamHeight}px`);
-        }
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('.zip-reveal'));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const observer = reducedMotion ? null : new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer?.unobserve(entry.target); }
+    }), { threshold: .12, rootMargin: '0px 0px -30px 0px' });
+    document.documentElement.classList.add('zip-motion-ready');
+    if (observer) nodes.forEach((node) => observer.observe(node));
+    else nodes.forEach((node) => node.classList.add('is-visible'));
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        progressRef.current?.style.setProperty('transform', `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`);
       });
     };
-    updateProgress();
-    window.addEventListener('scroll', updateProgress, { passive: true });
-    window.addEventListener('resize', updateProgress);
-    return () => {
-      observer.disconnect();
-      if (frame !== null) cancelAnimationFrame(frame);
-      root.classList.remove('motion-ready');
-      window.removeEventListener('scroll', updateProgress);
-      window.removeEventListener('resize', updateProgress);
-    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { if (frame) window.cancelAnimationFrame(frame); observer?.disconnect(); document.documentElement.classList.remove('zip-motion-ready'); window.removeEventListener('scroll', onScroll); };
   }, []);
 
-  const name = data.profile.fullName.trim();
-  const email = data.profile.email.trim();
-  const linkedin = safeExternalUrl(data.profile.linkedin);
-  const github = safeExternalUrl(data.profile.github);
+  return <div className="zip-home">
+    <div className="zip-progress" aria-hidden="true"><span ref={progressRef} /></div>
+    <section className="zip-hero" id="accueil">
+      <div className="zip-hero-copy">
+        <p className="zip-eyebrow zip-reveal"><i /> PORTFOLIO PERSONNEL <span>/</span> TRANSFORMATION DIGITALE</p>
+        <h1 className="zip-reveal">{name || 'IVO ABDOULRHAMANE NESTOR'}<em>{profile.title || 'Ingénierie & solutions numériques'}</em></h1>
+        <p className="zip-hero-intro zip-reveal">{profile.introduction || 'Je développe mes compétences dans le numérique, l’assistance informatique et la gestion de projets. Ici, mon parcours et mes réalisations prennent forme.'}</p>
+        <div className="zip-hero-actions zip-reveal"><Link className="zip-button zip-button-accent" href="/projects">Voir mes réalisations <ArrowRight size={16} /></Link><Link className="zip-button zip-button-outline" href="/about">Mon parcours <ArrowDownRight size={16} /></Link></div>
+        <div className="zip-hero-meta zip-reveal"><span><i /> DISPONIBLE POUR ÉCHANGER</span><span>{String(projects.length).padStart(2, '0')} PROJETS · {String(skills.length).padStart(2, '0')} DOMAINES</span></div>
+      </div>
+      <HeroScene data={data} />
+      <span className="zip-hero-side" aria-hidden="true">THE LIVING PORTFOLIO · {name || 'IVO'}</span>
+    </section>
 
-  return (
-    <div className="home-story">
-      <div className="story-progress" aria-hidden="true"><span ref={progressBarRef} /></div>
+    <div className="zip-ribbon" aria-hidden="true"><div className="zip-ribbon-track">{[...topics, ...topics].map((topic, index) => <span key={`${topic}-${index}`}>{topic}<i>✳</i></span>)}</div></div>
 
-      <section className="story-hero" id="accueil">
-        <div className="story-hero-copy">
-          <p className="story-kicker story-reveal"><span className="story-live-dot" /> Portfolio personnel <span className="story-kicker-divider">/</span> Parcours numérique</p>
-          <p className="story-hero-index story-reveal">01 <span>—</span> QUI JE SUIS</p>
-          <h1 className="story-reveal">
-            <span>{name ? `Je suis ${name}.` : 'Je construis mon parcours.'}</span>
-            <em>{data.profile.title || 'Le numérique, en mouvement.'}</em>
-          </h1>
-          <p className="story-hero-intro story-reveal">
-            {data.profile.introduction || 'Une présentation vivante de mon parcours, des idées que je transforme et des compétences que je développe.'}
-          </p>
-          <div className="story-hero-meta">
-            <a href="#recit" className="story-scroll-cue"><span className="story-scroll-line" />Faire défiler pour découvrir <span aria-hidden="true">↓</span></a>
-            <Link href="/competences" className="story-skills-shortcut">Voir mes savoir-faire <span aria-hidden="true">↗</span></Link>
-            <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
-          </div>
-        </div>
-        <div className="story-hero-art story-reveal"><PortfolioScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length + journeyCapabilities.length} /></div>
-        <div className="story-side-label" aria-hidden="true">PORTFOLIO — {name ? name.toUpperCase() : 'DOSSIER PERSONNEL'}</div>
-      </section>
+    <section className="zip-approach zip-container" id="demarche">
+      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">MA DÉMARCHE <span>/</span> 01</p><h2>Du besoin à la <em>solution.</em></h2></div><p>Une approche concrète : comprendre le contexte, structurer les besoins, construire avec méthode et apprendre du résultat.</p></header>
+      <div className="zip-approach-grid">
+        {[
+          ['01', 'Comprendre', 'Identifier le besoin, les personnes concernées et le résultat attendu.'],
+          ['02', 'Concevoir', 'Organiser les idées, clarifier les fonctionnalités et penser l’usage.'],
+          ['03', 'Construire', 'Choisir les outils adaptés et avancer par étapes lisibles.'],
+          ['04', 'Évaluer', 'Vérifier ce qui fonctionne et documenter ce qui reste à améliorer.'],
+        ].map(([index, title, copy]) => <article className="zip-approach-card zip-reveal" key={index}><span>{index} <i className="zip-line" /></span><h3>{title}</h3><p>{copy}</p></article>)}
+      </div>
+    </section>
 
-      <div className="story-ribbon" aria-hidden="true"><div className="story-ribbon-track"><span>CONCEVOIR</span><i>✳</i><span>APPRENDRE</span><i>✳</i><span>EXPÉRIMENTER</span><i>✳</i><span>CONSTRUIRE</span><i>✳</i><span>CONCEVOIR</span><i>✳</i><span>APPRENDRE</span><i>✳</i><span>EXPÉRIMENTER</span><i>✳</i><span>CONSTRUIRE</span><i>✳</i></div></div>
+    <section className="zip-showcase" id="projets">
+      <div className="zip-container">
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">TRAVAIL DOCUMENTÉ <span>/</span> 02</p><h2>Projets & <em>contributions.</em></h2></div><Link className="zip-text-link" href="/projects">Tous les projets <ArrowUpRight size={16} /></Link></header>
+        {projects.length ? <div className="zip-project-grid">{projects.slice(0, 3).map((project, index) => <Link className="zip-project-card zip-reveal" href={`/projects/${project.id}`} key={project.id}>
+          <div className="zip-project-image">{project.imageUrl ? <Image src={project.imageUrl} alt={`Aperçu de ${project.title}`} fill sizes="(max-width: 720px) 100vw, 33vw" unoptimized /> : <div className="zip-project-art" aria-hidden="true"><span>{`{ ${String(index + 1).padStart(2, '0')} }`}</span><i /><b /></div>}<span className="zip-project-image-index">PROJET / {String(index + 1).padStart(2, '0')}</span></div>
+          <div className="zip-project-copy"><p>{project.featured ? 'À LA UNE' : 'ÉTUDE DE CAS'} <ArrowUpRight size={14} /></p><h3>{project.title}</h3><span>{project.summary}</span></div>
+        </Link>)}</div> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Les réalisations publiées apparaîtront ici.</h3><p>Chaque fiche montrera le problème, ma contribution, la solution et les technologies utilisées.</p></div><Link className="zip-text-link" href="/about#parcours">Voir mes contributions <ArrowUpRight size={16} /></Link></div>}
+      </div>
+    </section>
 
-      <section className="story-tile-marquee" aria-hidden="true">
-        {[movingTopics, [...movingTopics].reverse()].map((row, rowIndex) => <div className={`story-tile-track${rowIndex ? ' is-reverse' : ''}`} key={rowIndex}>
-          {[...row, ...row].map((item, index) => <div className="story-tile-card" key={`${rowIndex}:${index}`}>
-            {item.imageUrl && <Image src={item.imageUrl} alt="" fill sizes="220px" className="story-tile-image" unoptimized />}
-            <span>{item.category}</span><i>{String((index % row.length) + 1).padStart(2, '0')}</i><strong>{item.title}</strong>
-          </div>)}
-        </div>)}
-      </section>
+    <section className="zip-skills" id="competences">
+      <div className="zip-container">
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">COMPÉTENCES <span>/</span> 03</p><h2>Ce que je sais <em>faire.</em></h2></div><p>Des domaines clairement séparés. Les langages précis et les preuves pourront être complétés dans l’administration.</p></header>
+        <div className="zip-skill-grid">{skills.map((group, index) => <SkillTile group={group} index={index} key={group.id} />)}</div>
+        {journey.length > 0 && <div className="zip-capability-strip zip-reveal"><span>PRATIQUE DOCUMENTÉE</span><p>{journey.slice(0, 2).map((item) => item.title).join(' · ')}</p><Link href="/competences">Détails <ArrowUpRight size={14} /></Link></div>}
+        <Link href="/competences" className="zip-button zip-button-dark zip-skills-more">Explorer les compétences <ArrowRight size={16} /></Link>
+      </div>
+    </section>
 
-      <section className="story-section story-about" id="recit">
-        <div className="story-section-aside story-reveal"><span>02 / LE RÉCIT</span><span className="story-aside-rule" /><span>Au-delà du titre</span></div>
-        <div className="story-about-content story-reveal">
-          <p className="story-kicker">Derrière les projets</p>
-          <h2>{data.profile.about ? 'Un parcours, une façon de voir.' : 'Chaque parcours commence par une curiosité.'}</h2>
-          <p className="story-about-text">{data.profile.about || 'Ici, tu pourras raconter ce qui t’a conduit vers le numérique, ce qui t’intéresse et la direction que tu veux prendre. Ajoute ton histoire depuis l’administration : elle prendra sa place dans ce récit.'}</p>
-          <div className="story-about-foot"><span className="story-about-mark">{name ? name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase() : '✦'}</span><span><strong>{name || 'Mon parcours'}</strong><small>{data.profile.title || 'Profil en construction'}</small></span><Link href="/about" aria-label="Lire la présentation complète">Lire la suite <span aria-hidden="true">↗</span></Link></div>
-        </div>
-        <div className="story-about-visual story-reveal" aria-hidden="true"><div className="story-about-visual-orbit"><span /><span /><span /></div><div className="story-about-visual-center">{data.profile.portraitUrl ? <Image src={data.profile.portraitUrl} alt="" fill sizes="90px" className="story-about-portrait" unoptimized /> : name ? name.trim().slice(0, 1).toUpperCase() : '✦'}</div><span className="story-about-visual-label">ÉVOLUER<br />PAR L’ACTION</span></div>
-      </section>
+    <section className="zip-journey" id="parcours">
+      <div className="zip-container zip-journey-layout">
+        <header className="zip-section-head zip-journey-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> 04</p><h2>Apprendre.<br /><em>Contribuer.</em><br />Avancer.</h2></div><p>Les étapes qui montrent comment mon intérêt pour le numérique se traduit en pratique.</p><Link className="zip-text-link" href="/about#parcours">Tout le parcours <ArrowUpRight size={16} /></Link></header>
+        {journey.length ? <div className="zip-timeline">{journey.slice(0, 4).map((item, index) => <article className="zip-timeline-item zip-reveal" key={item.id} style={{ '--delay': `${index * 80}ms` } as CSSProperties}><span className="zip-timeline-marker">{String(index + 1).padStart(2, '0')}</span><div><p>{item.category} <span>/</span> {item.period}</p><h3>{item.title}</h3>{item.organization && <small>{item.organization}</small>}<p className="zip-timeline-copy">{item.description}</p></div></article>)}</div> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Le parcours sera détaillé ici.</h3><p>Formations, expériences et contributions apparaîtront à mesure qu’elles seront publiées.</p></div></div>}
+      </div>
+    </section>
 
-      <section className="story-section story-journey" id="parcours">
-        <div className="story-section-aside story-reveal"><span>03 / LES ÉTAPES</span><span className="story-aside-rule" /><span>Apprendre, contribuer, avancer</span></div>
-        <div className="story-journey-main story-reveal"><p className="story-kicker">Un parcours qui se construit</p><h2>Chaque étape laisse une trace.</h2>
-          {publishedJourney.length > 0 && <div className="story-journey-summary"><strong>{String(publishedJourney.length).padStart(2, '0')}</strong><span>étapes publiées</span><i aria-hidden="true" /><span>Études · expériences · contributions</span></div>}
-          {publishedJourney.length ? <div className="story-timeline">{publishedJourney.map((item, index) => <article className="story-timeline-item story-reveal" key={item.id} style={{ transitionDelay: `${Math.min(index, 5) * 90}ms` }}><div className="story-timeline-marker"><span>{String(index + 1).padStart(2, '0')}</span></div><div className="story-timeline-copy"><div className="story-timeline-meta"><span>{item.category}</span>{item.period && <span>{item.period}</span>}</div><h3>{item.title}</h3>{item.organization && <p className="story-timeline-org">{item.organization}</p>}{item.description && <p className="story-timeline-description">{item.description}</p>}</div></article>)}</div> : <div className="story-timeline-empty"><span className="story-timeline-marker"><span>01</span></span><div><h3>Les étapes de ton histoire restent à raconter.</h3><p>Ajoute tes formations, expériences ou contributions dans l’administration. La frise se construira à partir des étapes publiées.</p></div></div>}
-          <div className="story-journey-actions"><Link href="#competences" className="story-section-link">Voir mes savoir-faire <span aria-hidden="true">⟶</span></Link>{data.cv.fileUrl && <Link href="/cv" className="story-section-link">Consulter mon CV <span aria-hidden="true">⟶</span></Link>}</div>
-        </div>
-      </section>
+    <section className="zip-explore zip-container" aria-labelledby="zip-explore-title">
+      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">POURSUIVRE L’EXPLORATION <span>/</span> 05</p><h2 id="zip-explore-title">Un profil, plusieurs <em>facettes.</em></h2></div><p>Chaque espace apporte un autre angle sur mon travail et mon apprentissage.</p></header>
+      <div className="zip-explore-grid">
+        {[
+          { label: 'Profil', href: '/about', count: '01', detail: profile.about ? 'Mon histoire et mes objectifs' : 'Présentation et objectifs' },
+          { label: 'Certifications', href: '/certifications', count: String(certificates.length).padStart(2, '0'), detail: 'Formations et preuves' },
+          { label: 'Laboratoire', href: '/experiments', count: String(data.experiments.filter((item) => item.published).length).padStart(2, '0'), detail: 'Essais et prototypes' },
+          { label: 'CV consultable', href: '/cv', count: data.cv.fileUrl ? 'PDF' : '↗', detail: data.cv.fileUrl ? 'Lire ou télécharger' : 'Consulter le document' },
+        ].map((tile) => <Link href={tile.href} className="zip-explore-tile zip-reveal" key={tile.href}><span>{tile.count}</span><div><h3>{tile.label}</h3><p>{tile.detail}</p></div><ArrowUpRight size={17} /></Link>)}
+      </div>
+    </section>
 
-      <section className="story-section story-skills" id="competences">
-        <div className="story-section-aside story-reveal"><span>04 / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
-        <div className="story-skills-main story-reveal"><p className="story-kicker">Pratique, contribution, formation</p><h2>Ce que je sais faire et ce que je développe.</h2><p className="story-skills-copy">Ces savoir-faire viennent des expériences et des formations décrites dans mon parcours. Les compétences techniques sont reliées séparément aux projets et certificats publiés.</p>
-          {journeyCapabilities.length > 0 && <div className="story-capability-grid">{journeyCapabilities.map((capability) => <article className="story-capability-card" key={capability.name}><div className="story-capability-top"><span>{capability.status}</span><span>{capability.source.period}</span></div><h3>{capability.name}</h3><p>{capability.summary}</p><Link href={`/about#experience-${capability.source.id}`}>Voir l’étape du parcours <span aria-hidden="true">↗</span></Link></article>)}</div>}
-          {skills.length ? <SkillEvidenceExplorer projects={publishedProjects} certificates={publishedCertificates} /> : journeyCapabilities.length === 0 && <div className="story-skills-empty"><div className="story-skills-empty-heading"><span>COMMENT LES COMPÉTENCES APPARAISSENT</span><p>Chaque compétence affichée sera reliée à une preuve publiée, pour distinguer ce qui est appris de ce qui est déjà mis en pratique.</p></div><ol><li><span>01</span><strong>Projet ou certificat</strong><small>Une preuve publiée</small></li><li><span>02</span><strong>Technologies et acquis</strong><small>Les éléments documentés</small></li><li><span>03</span><strong>Compétence reliée</strong><small>Une information vérifiable</small></li></ol></div>}
-          <Link href="/competences" className="story-section-link">Voir les compétences détaillées <span aria-hidden="true">⟶</span></Link>
-        </div>
-      </section>
-
-      <section className="story-section story-work" id="projets">
-        <div className="story-section-heading story-reveal"><div><p className="story-kicker">05 / CE QUE JE FAIS</p><h2>Les idées deviennent réelles.</h2></div><p>Des projets documentés pour comprendre le besoin, le travail mené et ce qui a été appris.</p></div>
-        {selectedProjects.length ? <div className="story-project-list">{selectedProjects.map((project, index) => <ProjectStory key={project.id} project={project} index={index} />)}</div> : <div className="story-empty-work story-reveal"><div className="story-empty-work-copy"><span className="story-empty-index">01 — PREMIÈRE ÉTUDE DE CAS</span><h3>Le prochain projet mérite d’être raconté.</h3><p>Ajoute une réalisation dans l’administration pour présenter son contexte, ta contribution, sa solution et les preuves associées.</p><div className="story-empty-diagram" aria-hidden="true"><span>PROBLÈME</span><i>⟶</i><span>IDÉE</span><i>⟶</i><span>SOLUTION</span></div></div><div className="story-empty-work-visual" aria-hidden="true"><Image src="/assets/images/projects/project1.jpg" alt="" fill sizes="(max-width: 760px) 100vw, 38vw" className="story-empty-work-image" unoptimized /><div className="story-empty-work-visual-caption"><span>STRUCTURE D’UNE ÉTUDE DE CAS</span><span>VISUEL D’AMBIANCE · À REMPLACER PAR UN PROJET PUBLIÉ</span></div><div className="story-empty-work-visual-grid"><span>CONTEXTE</span><i>01</i><span>CONTRIBUTION</span><i>02</i><span>RÉSULTAT</span><i>03</i></div></div></div>}
-        {publishedProjects.length > selectedProjects.length && <Link href="/projects" className="story-section-link story-reveal">Parcourir toutes les réalisations <span aria-hidden="true">⟶</span></Link>}
-      </section>
-
-      {publishedExperiments.length > 0 && <section className="story-lab-section" id="laboratoire">
-        <div className="story-lab-heading"><div><p className="story-kicker">06 / CE QUE J’EXPLORE</p><h2>Des idées encore en mouvement.</h2><p>Prototypes et questions ouvertes, gardés distincts des projets finalisés.</p></div><Link href="/experiments">Explorer le laboratoire <span aria-hidden="true">⟶</span></Link></div>
-        <div className="story-lab-grid">{publishedExperiments.slice(0, 3).map((experiment, index) => <Link className="story-lab-card" href="/experiments" key={experiment.id} style={{ animationDelay: `${index * 80}ms` }}>
-          <div><span>{experiment.category || 'EXPLORATION'}</span><span className="story-lab-state"><i />{experiment.status || 'En cours'}</span></div>
-          <span className="story-lab-mark" aria-hidden="true">{String(index + 1).padStart(2, '0')}<i>✳</i></span>
-          <h3>{experiment.title}</h3>{experiment.description && <p>{experiment.description}</p>}
-          {experiment.technologies && <span className="story-lab-tech">{experiment.technologies}</span>}
-        </Link>)}</div>
-      </section>}
-
-      <section className="story-section story-proof" id="certificats">
-        <div className="story-section-heading story-reveal"><div><p className="story-kicker">{publishedExperiments.length ? '07' : '06'} / CE QUI LE PROUVE</p><h2>Apprendre, puis le montrer.</h2></div><p>Une sélection de certificats et de formations qui donnent du contexte aux compétences acquises.</p></div>
-        {selectedCertificates.length ? <div className="story-certificate-grid">{selectedCertificates.map((certificate, index) => <CertificateCard key={certificate.id} certificate={certificate} index={index} />)}</div> : <div className="story-empty-proof story-reveal"><div className="story-proof-stack" aria-hidden="true"><span>01 / PREUVE</span><i /><i /><i /></div><div><h3>Une bibliothèque de preuves, pas un mur de logos.</h3><p>Ajoute tes certificats depuis l’administration : chaque fiche peut indiquer son organisme, son domaine, ses compétences et son lien de vérification.</p></div><Link href="/certifications">Découvrir la bibliothèque <span aria-hidden="true">⟶</span></Link></div>}
-        {publishedCertificates.length > selectedCertificates.length && <Link href="/certifications" className="story-section-link story-reveal">Explorer les {publishedCertificates.length} certificats <span aria-hidden="true">⟶</span></Link>}
-      </section>
-
-      <section className="story-contact" id="contact">
-        <div className="story-contact-noise" aria-hidden="true" />
-        <div className="story-contact-heading story-reveal"><p className="story-kicker">{publishedExperiments.length ? '08' : '07'} / LA SUITE</p><h2>Un parcours se construit aussi dans la rencontre.</h2><p>Pour parler d’un projet, d’une idée ou d’une opportunité, voici où me joindre.</p></div>
-        <div className="story-contact-links story-reveal">
-          {email ? <a href={`mailto:${email}`}><span>ÉCRIRE</span><strong>{email}</strong><i aria-hidden="true">↗</i></a> : <div><span>CONTACT</span><strong>Ajoute ton adresse e-mail dans l’administration.</strong></div>}
-          {linkedin && <a href={linkedin} target="_blank" rel="noreferrer"><span>LINKEDIN</span><strong>Échanger sur mon parcours</strong><i aria-hidden="true">↗</i></a>}
-          {github && <a href={github} target="_blank" rel="noreferrer"><span>GITHUB</span><strong>Voir mon travail technique</strong><i aria-hidden="true">↗</i></a>}
-          {data.cv.fileUrl && <Link href="/cv"><span>CURRICULUM VITAE</span><strong>Lire mon CV</strong><i aria-hidden="true">↗</i></Link>}
-        </div>
-        <Link href="/admin" className="story-admin-hint">Mettre à jour cette présentation <span aria-hidden="true">↗</span></Link>
-      </section>
-    </div>
-  );
+    <section className="zip-contact" id="contact">
+      <div className="zip-container zip-contact-inner"><div className="zip-contact-copy zip-reveal"><p className="zip-kicker">CONTACT <span>/</span> LA SUITE</p><h2>Échangeons autour<br />d’une <em>idée concrète.</em></h2><p>{profile.email ? 'Pour parler d’un projet, d’une collaboration ou d’une opportunité professionnelle.' : 'Retrouve mes coordonnées professionnelles et mes profils dans ma présentation.'}</p></div><div className="zip-contact-actions zip-reveal">{profile.email ? <a href={`mailto:${profile.email}`} className="zip-button zip-button-accent">M’écrire <ArrowUpRight size={16} /></a> : <Link href="/about#contact" className="zip-button zip-button-accent">Mes coordonnées <ArrowUpRight size={16} /></Link>}<Link href="/cv" className="zip-button zip-button-outline">Consulter mon CV <ArrowUpRight size={16} /></Link></div><span className="zip-contact-signature" aria-hidden="true">IN</span></div>
+    </section>
+  </div>;
 }

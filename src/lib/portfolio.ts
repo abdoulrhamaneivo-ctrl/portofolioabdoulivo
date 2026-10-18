@@ -3,9 +3,9 @@ import path from 'node:path';
 import { neon } from '@neondatabase/serverless';
 import type { CSSProperties } from 'react';
 
-import { emptyPortfolio, portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProfile, type PortfolioProject, type PortfolioSettings } from './portfolio-shared';
+import { emptyPortfolio, portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProfile, type PortfolioProject, type PortfolioSettings, type PortfolioSkillGroup } from './portfolio-shared';
 export { emptyPortfolio, portfolioAccents } from './portfolio-shared';
-export type { PortfolioAccent, PortfolioCertificate, PortfolioData, PortfolioExperiment, PortfolioJourneyItem, PortfolioProfile, PortfolioProject, PortfolioSettings } from './portfolio-shared';
+export type { PortfolioAccent, PortfolioCertificate, PortfolioData, PortfolioExperiment, PortfolioJourneyItem, PortfolioProfile, PortfolioProject, PortfolioSettings, PortfolioSkillGroup } from './portfolio-shared';
 
 export function portfolioCssVariables(settings: PortfolioSettings): CSSProperties {
   return {
@@ -73,6 +73,10 @@ export function normalizePortfolioData(value: unknown): PortfolioData {
       published: booleanValue((item as Record<string, unknown>).published),
       featured: booleanValue((item as Record<string, unknown>).featured),
     })),
+    skillGroups: Array.isArray(saved.skillGroups) ? listOf<PortfolioSkillGroup>(saved.skillGroups, (item) => ({
+      ...textFields<PortfolioSkillGroup>(item, { id: 100, title: 120, items: 3000, level: 100, summary: 2000 }),
+      published: booleanValue((item as Record<string, unknown>).published),
+    })) : emptyPortfolio.skillGroups,
     experiments: listOf(saved.experiments, (item) => ({
       ...textFields<PortfolioExperiment>(item, { id: 100, title: 240, category: 120, description: 5000, technologies: 2000, status: 80 }),
       published: booleanValue((item as Record<string, unknown>).published),

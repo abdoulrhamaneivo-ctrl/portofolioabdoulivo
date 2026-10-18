@@ -10,7 +10,7 @@ export default async function Projects() {
   return (
     <main className="min-h-screen flex flex-col" style={portfolioCssVariables(data.settings)}>
       <Navbar />
-      <ProjectsContent projects={data.projects.filter((project) => project.published)} />
+      <ProjectsContent projects={data.projects.filter((project) => project.published)} journey={data.journey.filter((item) => item.published)} />
       <Footer />
     </main>
   );

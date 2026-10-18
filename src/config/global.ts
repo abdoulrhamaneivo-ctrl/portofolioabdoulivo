@@ -8,38 +8,15 @@ export const globalConfig = {
   navigation: {
     aria: "Navigation principale",
     items: [
-      {
-        title: "Accueil",
-        href: "/"
-      },
-      {
-        title: "Parcours",
-        href: "/about#parcours"
-      },
-      {
-        title: "Savoir-faire",
-        href: "/competences"
-      },
-      {
-        title: "Projets",
-        href: "/projects"
-      },
-      {
-        title: "Certificats",
-        href: "/certifications"
-      },
-      {
-        title: "Laboratoire",
-        href: "/experiments"
-      },
-      {
-        title: "À propos",
-        href: "/about"
-      },
-      {
-        title: "CV",
-        href: "/cv"
-      }
+      { title: "Accueil", href: "/" },
+      { title: "Profil", href: "/about" },
+      { title: "Projets", href: "/projects" },
+      { title: "Compétences", href: "/competences" },
+      { title: "Certifications", href: "/certifications" },
+      { title: "Parcours", href: "/about#parcours" },
+      { title: "Labo", href: "/experiments" },
+      { title: "Contact", href: "/#contact" },
+      { title: "CV", href: "/cv" }
     ]
   },
   footer: {

@@ -1,65 +1,48 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Blocks, Braces, Database, LockKeyhole, Palette, Sparkles } from 'lucide-react';
-import type { PortfolioCertificate, PortfolioJourneyItem, PortfolioProject } from '@/lib/portfolio';
+import { ArrowUpRight, Code2, Layers3, Network, PanelsTopLeft } from 'lucide-react';
+import type { PortfolioCertificate, PortfolioJourneyItem, PortfolioProject, PortfolioSkillGroup } from '@/lib/portfolio';
 import { getJourneyCapabilities } from '@/lib/competences';
 
-type Evidence = { label: string; href: string; kind: 'PROJET' | 'CERTIFICAT' };
-type Skill = { name: string; evidence: Evidence[] };
-
-function splitValues(value: string): string[] {
+function split(value: string) {
   return Array.from(new Set(value.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean)));
 }
 
-const domains = [
-  { title: 'Développement', icon: Braces, terms: /javascript|typescript|react|next|node|html|css|python|java|php|api|git|développement/i },
-  { title: 'Conception numérique', icon: Blocks, terms: /produit|conception|architecture|prototype|méthode|agile|gestion/i },
-  { title: 'UX / UI', icon: Palette, terms: /ux|ui|figma|design|interface|accessibilité|ergonomie/i },
-  { title: 'Données', icon: Database, terms: /sql|data|donnée|base|analyse|power bi|excel/i },
-  { title: 'Sécurité', icon: LockKeyhole, terms: /sécurité|cyber|réseau|owasp|cloud|système/i },
-  { title: 'IA', icon: Sparkles, terms: /ia|intelligence artificielle|machine learning|modèle|prompt/i },
-];
+const skillIcons = [Code2, Network, PanelsTopLeft, Layers3];
 
-export default function CompetencesContent({ projects, certificates, journey }: { projects: PortfolioProject[]; certificates: PortfolioCertificate[]; journey: PortfolioJourneyItem[] }) {
-  const byName = new Map<string, Skill>();
-  const add = (name: string, evidence: Evidence) => {
-    const key = name.toLocaleLowerCase('fr-FR');
-    const skill = byName.get(key) || { name, evidence: [] };
-    if (!skill.evidence.some((item) => item.href === evidence.href && item.kind === evidence.kind)) skill.evidence.push(evidence);
-    byName.set(key, skill);
-  };
-  projects.forEach((project) => splitValues(project.technologies).forEach((name) => add(name, { label: project.title, href: `/projects/${project.id}`, kind: 'PROJET' })));
-  certificates.forEach((certificate) => splitValues(certificate.skills).forEach((name) => add(name, { label: certificate.title, href: `/certifications#certificate-${certificate.id}`, kind: 'CERTIFICAT' })));
-  const skills = Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-  const journeyCapabilities = getJourneyCapabilities(journey);
-  const linkedJourneyCount = new Set(journeyCapabilities.map((capability) => capability.source.id)).size;
-  const grouped = domains.map((domain) => ({ ...domain, skills: skills.filter((skill) => domain.terms.test(skill.name)) })).filter((domain) => domain.skills.length);
-  const otherSkills = skills.filter((skill) => !grouped.some((group) => group.skills.includes(skill)));
+export default function CompetencesContent({ skillGroups, projects, certificates, journey }: { skillGroups: PortfolioSkillGroup[]; projects: PortfolioProject[]; certificates: PortfolioCertificate[]; journey: PortfolioJourneyItem[] }) {
+  const visibleGroups = skillGroups.filter((group) => group.published);
+  const [activeId, setActiveId] = useState(visibleGroups[0]?.id || '');
+  const active = visibleGroups.find((group) => group.id === activeId) || visibleGroups[0];
+  const capabilities = getJourneyCapabilities(journey);
+  const projectCount = projects.length;
+  const certificateCount = certificates.length;
+  const tags = active ? split(active.items) : [];
+  const Icon = active ? skillIcons[Math.max(0, visibleGroups.indexOf(active)) % skillIcons.length] : Layers3;
 
-  return <section className="portfolio-skills-page">
-    <header className="portfolio-page-heading skills-heading">
-      <p className="portfolio-page-kicker"><span /> CARTOGRAPHIE DES SAVOIR-FAIRE / 01</p>
-      <h1>Mes savoir-faire<br /><em>en pratique.</em></h1>
-      <p className="portfolio-page-lead">Les savoir-faire ci-dessous sont reliés à mes expériences et à ma formation. Les compétences techniques sont associées à des projets ou des certificats publiés.</p>
-      <div className="skills-summary"><strong>{String(skills.length + journeyCapabilities.length).padStart(2, '0')}</strong><span>savoir-faire documentés</span><i aria-hidden="true" /><strong>{String(projects.length + certificates.length + linkedJourneyCount).padStart(2, '0')}</strong><span>sources reliées</span></div>
-    </header>
+  return <section className="zip-skill-page zip-page-shell">
+    <header className="zip-page-heading zip-reveal"><div><p className="zip-kicker">COMPÉTENCES <span>/</span> CARTOGRAPHIE</p><h1>Ce que je sais<br /><em>faire et développer.</em></h1></div><p>Mes domaines de pratique, affichés au même niveau et avec leurs preuves de parcours quand elles sont disponibles.</p><div className="zip-page-counts"><strong>{String(visibleGroups.length).padStart(2, '0')}</strong><span>domaines<br />présentés</span><i /><strong>{String(projectCount + certificateCount + capabilities.length).padStart(2, '0')}</strong><span>éléments<br />de parcours reliés</span></div></header>
 
-    {journeyCapabilities.length > 0 && <section className="skills-capabilities" aria-labelledby="skills-capabilities-title">
-      <header className="skills-capabilities-heading"><div><p className="portfolio-about-eyebrow">PRATIQUE DOCUMENTÉE / FORMATION</p><h2 id="skills-capabilities-title">Mes savoir-faire dans les faits.</h2></div><p>Je distingue ce que j’ai déjà pratiqué, mes contributions aux projets collectifs et les compétences que je construis encore en formation.</p></header>
-      <div className="skills-capability-grid">{journeyCapabilities.map((capability) => <article className="skills-capability-card" key={capability.name}>
-        <div className="skills-capability-meta"><span>{capability.status}</span><time>{capability.source.period}</time></div>
-        <h3>{capability.name}</h3>
-        <p>{capability.summary}</p>
-        <Link href={`/about#experience-${capability.source.id}`}>Source : {capability.source.title}<ArrowUpRight size={14} aria-hidden="true" /></Link>
-      </article>)}</div>
-    </section>}
+    {visibleGroups.length ? <div className="zip-skills-explorer">
+      <div className="zip-skill-picker" role="tablist" aria-label="Choisir un domaine de compétence">{visibleGroups.map((group, index) => {
+        const ItemIcon = skillIcons[index % skillIcons.length];
+        const selected = active?.id === group.id;
+        return <button key={group.id} type="button" role="tab" id={`skill-tab-${group.id}`} aria-selected={selected} aria-controls="skill-domain-detail" onClick={() => setActiveId(group.id)}><span>{String(index + 1).padStart(2, '0')}</span><ItemIcon size={18} /><strong>{group.title}</strong><i aria-hidden="true">↗</i></button>;
+      })}</div>
 
-    {skills.length ? <div className="skills-domain-grid">{grouped.map((domain) => {
-      const Icon = domain.icon;
-      return <section className="skills-domain" key={domain.title}><header><span><Icon size={17} strokeWidth={1.6} /></span><div><p>DOMAINE</p><h2>{domain.title}</h2></div><small>{String(domain.skills.length).padStart(2, '0')}</small></header>
-        <div className="skills-evidence-list">{domain.skills.map((skill) => <article className="skill-evidence-item" key={skill.name}><div className="skill-evidence-name"><span className="skill-evidence-node" /><h3>{skill.name}</h3><span>{String(skill.evidence.length).padStart(2, '0')} source{skill.evidence.length > 1 ? 's' : ''}</span></div>
-          <ul>{skill.evidence.map((source) => <li key={`${source.kind}:${source.href}`}><span>{source.kind}</span><Link href={source.href}>{source.label}<ArrowUpRight size={13} /></Link></li>)}</ul>
-        </article>)}</div>
-      </section>;
-    })}{otherSkills.length > 0 && <section className="skills-domain skills-domain-other"><header><span><Blocks size={17} strokeWidth={1.6} /></span><div><p>ÉLÉMENTS À CLASSER</p><h2>Autres sujets</h2></div><small>{String(otherSkills.length).padStart(2, '0')}</small></header><div className="skills-evidence-list">{otherSkills.map((skill) => <article className="skill-evidence-item" key={skill.name}><div className="skill-evidence-name"><span className="skill-evidence-node" /><h3>{skill.name}</h3><span>{String(skill.evidence.length).padStart(2, '0')} source{skill.evidence.length > 1 ? 's' : ''}</span></div><ul>{skill.evidence.map((source) => <li key={`${source.kind}:${source.href}`}><span>{source.kind}</span><Link href={source.href}>{source.label}<ArrowUpRight size={13} /></Link></li>)}</ul></article>)}</div></section>}</div> : journeyCapabilities.length === 0 ? <div className="portfolio-empty-state"><span>{'</>'}</span><div><p className="portfolio-about-eyebrow">PREUVES À RELIER</p><h2>Les savoir-faire apparaîtront avec les expériences publiées.</h2><p>Ajoute tes expériences, tes projets ou tes certificats dans l’administration. Les compétences et les technologies seront reliées aux informations que tu publies.</p></div></div> : <div className="skills-technical-empty"><span aria-hidden="true">{'</>'}</span><div><p className="portfolio-about-eyebrow">COMPÉTENCES TECHNIQUES</p><h2>Les outils seront associés à leurs preuves.</h2><p>Les expériences ci-dessus présentent mes savoir-faire transversaux. Les langages et outils apparaîtront ici quand ils seront mentionnés dans un projet ou un certificat publié.</p></div></div>}
+      {active && <section className="zip-skill-detail zip-reveal" id="skill-domain-detail" role="tabpanel" aria-labelledby={`skill-tab-${active.id}`} key={active.id}>
+        <div className="zip-skill-detail-visual"><span className="zip-kicker">DOMAINE / {String(visibleGroups.indexOf(active) + 1).padStart(2, '0')}</span><div className="zip-skill-detail-symbol"><Icon size={62} strokeWidth={1.2} /><i /></div><span>{active.level || 'Niveau à préciser'}</span></div>
+        <div className="zip-skill-detail-copy"><p className="zip-kicker">MON NIVEAU DE PRATIQUE</p><h2>{active.title}</h2><p>{active.summary || 'Les outils et compétences précisés ici sont administrables depuis le studio du portfolio.'}</p>
+          <div className="zip-skill-detail-tags">{tags.length ? tags.map((item) => <span key={item}>{item}</span>) : <span>{active.id === 'programming' ? 'Langages de programmation à préciser' : 'Éléments à compléter'}</span>}</div>
+          <div className="zip-skill-detail-note"><i />{active.level === 'Bases' ? 'Bases déclarées' : active.level === 'À préciser' ? 'Niveau à préciser' : active.level || 'Pratique documentée'}</div>
+        </div>
+      </section>}
+    </div> : <div className="zip-empty-inline"><span className="zip-empty-mark">01</span><div><h2>Aucun domaine n’est publié.</h2><p>Les catégories se gèrent dans l’administration du portfolio.</p></div></div>}
+
+    {capabilities.length > 0 && <section className="zip-skill-proof-section"><header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> PREUVES LIÉES</p><h2>La pratique <em>en contexte.</em></h2></div><p>Ces capacités renvoient vers l’étape de formation, d’expérience ou de contribution qui les documente.</p></header><div className="zip-proof-grid">{capabilities.map((capability, index) => <article className="zip-proof-card zip-reveal" key={`${capability.name}-${capability.source.id}`}><span>{String(index + 1).padStart(2, '0')} / {capability.status}</span><h3>{capability.name}</h3><p>{capability.summary}</p><Link href={`/about#experience-${capability.source.id}`}>{capability.source.title}<ArrowUpRight size={14} /></Link></article>)}</div></section>}
+
+    <section className="zip-skills-ledger"><div className="zip-section-head zip-reveal"><div><p className="zip-kicker">APPRENTISSAGES <span>/</span> 02</p><h2>Langages, outils & <em>méthodes.</em></h2></div><p>Les détails techniques associés aux réalisations et certificats restent liés à leurs fiches publiques.</p></div><div className="zip-ledger-grid"><Link href="/projects" className="zip-ledger-cell"><span>01 / TECHNOLOGIES DE PROJET</span><strong>{projectCount ? `${projectCount} projet${projectCount > 1 ? 's' : ''} publié${projectCount > 1 ? 's' : ''}` : 'Projets en attente de publication'}</strong><i>Voir les réalisations <ArrowUpRight size={15} /></i></Link><Link href="/certifications" className="zip-ledger-cell"><span>02 / COMPÉTENCES CERTIFIÉES</span><strong>{certificateCount ? `${certificateCount} certificat${certificateCount > 1 ? 's' : ''} publié${certificateCount > 1 ? 's' : ''}` : 'Aucun certificat publié'}</strong><i>Parcourir les certificats <ArrowUpRight size={15} /></i></Link></div></section>
   </section>;
 }
