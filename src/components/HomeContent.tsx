@@ -3,9 +3,10 @@
 import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Code2, Layers3, Network, PanelsTopLeft } from 'lucide-react';
-import type { PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Award, Code2, ExternalLink, Layers3, Network, PanelsTopLeft } from 'lucide-react';
+import type { PortfolioCertificate, PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
 import JourneyTimeline from '@/components/JourneyTimeline';
+import { safeExternalUrl } from '@/lib/urls';
 
 function list(value: string) {
   return Array.from(new Set(value.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean)));
@@ -16,6 +17,11 @@ function sortJourney(items: PortfolioJourneyItem[]) {
     const year = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
     return year(b.period) - year(a.period);
   });
+}
+
+function certificateDate(value: string) {
+  if (/^\d{4}-\d{2}$/.test(value)) return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(`${value}-01T12:00:00`));
+  return value;
 }
 
 function SkillTile({ group, index }: { group: PortfolioSkillGroup; index: number }) {
@@ -72,8 +78,9 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
   const name = profile.fullName.trim();
   const skills = useMemo(() => data.skillGroups.filter((group) => group.published), [data.skillGroups]);
   const journey = useMemo(() => sortJourney(data.journey), [data.journey]);
-  const projects = useMemo(() => data.projects.filter((project) => project.published), [data.projects]);
+  const projects = useMemo(() => data.projects.filter((project) => project.published).sort((a, b) => Number(b.featured) - Number(a.featured)), [data.projects]);
   const certificates = useMemo(() => data.certificates.filter((certificate) => certificate.published), [data.certificates]);
+  const featuredCertificates = useMemo(() => [...certificates].sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 3), [certificates]);
   const topics = useMemo(() => [
     'DIGITALISATION', 'RÉSEAUX & ASSISTANCE', 'GESTION DE PROJET', 'OUTILS OFFICE', 'PROGRAMMATION', 'CONCEPTION NUMÉRIQUE',
   ], []);
@@ -93,8 +100,38 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
 
     <div className="zip-ribbon" aria-hidden="true"><div className="zip-ribbon-track">{[...topics, ...topics].map((topic, index) => <span key={`${topic}-${index}`}>{topic}<i>✳</i></span>)}</div></div>
 
+    <section className="zip-showcase" id="projets">
+      <div className="zip-container">
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PROJETS <span>/</span> 01</p><h2>Des réalisations<br /><em>à voir en clair.</em></h2></div><p>Le contexte, ma contribution et les outils apparaissent directement ici, sans devoir ouvrir chaque fiche.</p><Link className="zip-text-link" href="/projects">Tous les projets <ArrowUpRight size={16} /></Link></header>
+        {projects.length ? <div className="zip-project-grid">{projects.slice(0, 3).map((project, index) => <article className="zip-project-card zip-home-project-card zip-reveal" key={project.id}>
+          <div className="zip-project-image">{project.imageUrl ? <Image src={project.imageUrl} alt={`Aperçu de ${project.title}`} fill sizes="(max-width: 720px) 100vw, 33vw" unoptimized /> : <div className="zip-project-art" aria-hidden="true"><span>{`{ ${String(index + 1).padStart(2, '0')} }`}</span><i /><b /></div>}<span className="zip-project-image-index">PROJET / {String(index + 1).padStart(2, '0')}</span></div>
+          <div className="zip-project-copy"><p>{project.featured ? 'PROJET À LA UNE' : 'ÉTUDE DE CAS'} <span>{project.featured ? '✳' : String(index + 1).padStart(2, '0')}</span></p><h3><Link href={`/projects/${project.id}`}>{project.title}</Link></h3>
+            {project.summary && <span className="zip-home-project-summary">{project.summary}</span>}
+            <div className="zip-home-project-facts">{project.problem && <div><strong>Le besoin</strong><p>{project.problem}</p></div>}{project.contribution && <div><strong>Ma contribution</strong><p>{project.contribution}</p></div>}{project.solution && <div><strong>La solution</strong><p>{project.solution}</p></div>}</div>
+            {project.technologies && <div className="zip-project-tags">{project.technologies.split(/[,;\n]/).map((item) => item.trim()).filter(Boolean).slice(0, 6).map((item) => <span key={item}>{item}</span>)}</div>}
+            <div className="zip-home-project-links"><Link href={`/projects/${project.id}`}>Étude complète <ArrowUpRight size={14} /></Link>{safeExternalUrl(project.proofUrl) && <a href={safeExternalUrl(project.proofUrl)!} target="_blank" rel="noreferrer">Preuve du travail <ExternalLink size={14} /></a>}{safeExternalUrl(project.link) && <a href={safeExternalUrl(project.link)!} target="_blank" rel="noreferrer">Voir le projet <ExternalLink size={14} /></a>}</div>
+          </div>
+        </article>)}</div> : <div className="zip-feature-empty zip-reveal"><span className="zip-empty-mark">00</span><div><p className="zip-kicker">RÉALISATIONS À PUBLIER</p><h3>Aucun projet n’est encore visible ici.</h3><p>Les projets publiés apparaîtront directement avec leur contexte, la contribution, les technologies et les preuves.</p></div><Link className="zip-text-link" href="/admin">Préparer une fiche projet <ArrowUpRight size={16} /></Link></div>}
+      </div>
+    </section>
+
+    <section className="zip-cert-showcase" id="certifications">
+      <div className="zip-container">
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">CERTIFICATIONS <span>/</span> 02</p><h2>Les preuves de mon<br /><em>apprentissage.</em></h2></div><p>Organisme, date, compétences et document consultable sont affichés sur la page, pas cachés dans une fiche à ouvrir.</p><Link className="zip-text-link" href="/certifications">Toute la bibliothèque <ArrowUpRight size={16} /></Link></header>
+        {featuredCertificates.length ? <div className="zip-cert-grid">{featuredCertificates.map((certificate: PortfolioCertificate, index) => {
+          const verification = safeExternalUrl(certificate.verificationUrl);
+          return <article className="zip-cert-card zip-reveal" key={certificate.id} style={{ '--delay': `${index * 70}ms` } as CSSProperties}>
+            <div className="zip-cert-card-top"><span><Award size={17} /> {certificate.type || 'APPRENTISSAGE DOCUMENTÉ'}</span><strong>{String(index + 1).padStart(2, '0')}</strong></div>
+            <h3>{certificate.title}</h3><p className="zip-cert-issuer">{certificate.issuer || 'Organisme à préciser'}{certificate.date && <><i>·</i><time>{certificateDate(certificate.date)}</time></>}</p>
+            <div className="zip-cert-tags">{certificate.domain && <span>{certificate.domain}</span>}{certificate.level && <span>{certificate.level}</span>}{certificate.skills.split(/[,;\n]+/).map((skill) => skill.trim()).filter(Boolean).slice(0, 4).map((skill) => <span className="is-skill" key={skill}>{skill}</span>)}</div>
+            <div className="zip-cert-links">{certificate.fileUrl && <a href={certificate.fileUrl} target="_blank" rel="noreferrer">Consulter le certificat <ArrowUpRight size={14} /></a>}{verification && <a href={verification} target="_blank" rel="noreferrer">Vérifier en ligne <ExternalLink size={14} /></a>}{!certificate.fileUrl && !verification && <span>Document à joindre</span>}</div>
+          </article>;
+        })}</div> : <div className="zip-feature-empty zip-feature-empty-cert zip-reveal"><span className="zip-empty-mark">00</span><div><p className="zip-kicker">CERTIFICATS À PUBLIER</p><h3>Aucune preuve n’est encore visible ici.</h3><p>Chaque certificat publié sera présenté avec son organisme, sa date, ses compétences et un accès direct au document ou au lien de vérification.</p></div><Link className="zip-text-link" href="/admin">Ajouter des certificats <ArrowUpRight size={16} /></Link></div>}
+      </div>
+    </section>
+
     <section className="zip-approach zip-container" id="demarche">
-      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">MA DÉMARCHE <span>/</span> 01</p><h2>Du besoin à la <em>solution.</em></h2></div><p>Une approche concrète : comprendre le contexte, structurer les besoins, construire avec méthode et apprendre du résultat.</p></header>
+      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">MA DÉMARCHE <span>/</span> 03</p><h2>Du besoin à la <em>solution.</em></h2></div><p>Une approche concrète : comprendre le contexte, structurer les besoins, construire avec méthode et apprendre du résultat.</p></header>
       <div className="zip-approach-grid">
         {[
           ['01', 'Comprendre', 'Identifier le besoin, les personnes concernées et le résultat attendu.'],
@@ -105,19 +142,9 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       </div>
     </section>
 
-    <section className="zip-showcase" id="projets">
-      <div className="zip-container">
-        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">TRAVAIL DOCUMENTÉ <span>/</span> 02</p><h2>Projets & <em>contributions.</em></h2></div><Link className="zip-text-link" href="/projects">Tous les projets <ArrowUpRight size={16} /></Link></header>
-        {projects.length ? <div className="zip-project-grid">{projects.slice(0, 3).map((project, index) => <Link className="zip-project-card zip-reveal" href={`/projects/${project.id}`} key={project.id}>
-          <div className="zip-project-image">{project.imageUrl ? <Image src={project.imageUrl} alt={`Aperçu de ${project.title}`} fill sizes="(max-width: 720px) 100vw, 33vw" unoptimized /> : <div className="zip-project-art" aria-hidden="true"><span>{`{ ${String(index + 1).padStart(2, '0')} }`}</span><i /><b /></div>}<span className="zip-project-image-index">PROJET / {String(index + 1).padStart(2, '0')}</span></div>
-          <div className="zip-project-copy"><p>{project.featured ? 'À LA UNE' : 'ÉTUDE DE CAS'} <ArrowUpRight size={14} /></p><h3>{project.title}</h3><span>{project.summary}</span></div>
-        </Link>)}</div> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Les réalisations publiées apparaîtront ici.</h3><p>Chaque fiche montrera le problème, ma contribution, la solution et les technologies utilisées.</p></div><Link className="zip-text-link" href="/about#parcours">Voir mes contributions <ArrowUpRight size={16} /></Link></div>}
-      </div>
-    </section>
-
     <section className="zip-skills" id="competences">
       <div className="zip-container">
-        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">COMPÉTENCES <span>/</span> 03</p><h2>Ce que je sais <em>faire.</em></h2></div><p>Des domaines clairement séparés. Les langages précis et les preuves pourront être complétés dans l’administration.</p></header>
+        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">COMPÉTENCES <span>/</span> 04</p><h2>Ce que je sais <em>faire.</em></h2></div><p>Des domaines clairement séparés. Les langages précis et les preuves pourront être complétés dans l’administration.</p></header>
         <div className="zip-skill-grid">{skills.map((group, index) => <SkillTile group={group} index={index} key={group.id} />)}</div>
         {journey.length > 0 && <div className="zip-capability-strip zip-reveal"><span>PRATIQUE DOCUMENTÉE</span><p>{journey.slice(0, 2).map((item) => item.title).join(' · ')}</p><Link href="/competences">Détails <ArrowUpRight size={14} /></Link></div>}
         <Link href="/competences" className="zip-button zip-button-dark zip-skills-more">Explorer les compétences <ArrowRight size={16} /></Link>
@@ -126,13 +153,13 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
 
     <section className="zip-journey" id="parcours">
       <div className="zip-container zip-journey-layout">
-        <header className="zip-section-head zip-journey-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> 04</p><h2>Apprendre.<br /><em>Contribuer.</em><br />Avancer.</h2></div><p>Les étapes qui montrent comment mon intérêt pour le numérique se traduit en pratique.</p><Link className="zip-text-link" href="/about#parcours">Tout le parcours <ArrowUpRight size={16} /></Link></header>
+        <header className="zip-section-head zip-journey-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> 05</p><h2>Apprendre.<br /><em>Contribuer.</em><br />Avancer.</h2></div><p>Les étapes qui montrent comment mon intérêt pour le numérique se traduit en pratique.</p><Link className="zip-text-link" href="/about#parcours">Tout le parcours <ArrowUpRight size={16} /></Link></header>
         {journey.length ? <JourneyTimeline items={journey.slice(0, 4)} /> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Le parcours sera détaillé ici.</h3><p>Formations, expériences et contributions apparaîtront à mesure qu’elles seront publiées.</p></div></div>}
       </div>
     </section>
 
     <section className="zip-explore zip-container" aria-labelledby="zip-explore-title">
-      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">POURSUIVRE L’EXPLORATION <span>/</span> 05</p><h2 id="zip-explore-title">Un profil, plusieurs <em>facettes.</em></h2></div><p>Chaque espace apporte un autre angle sur mon travail et mon apprentissage.</p></header>
+      <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">POURSUIVRE L’EXPLORATION <span>/</span> 06</p><h2 id="zip-explore-title">Un profil, plusieurs <em>facettes.</em></h2></div><p>Chaque espace apporte un autre angle sur mon travail et mon apprentissage.</p></header>
       <div className="zip-explore-grid">
         {[
           { label: 'Profil', href: '/about', count: '01', detail: profile.about ? 'Mon histoire et mes objectifs' : 'Présentation et objectifs' },
