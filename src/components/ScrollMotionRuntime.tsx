@@ -17,13 +17,25 @@ export default function ScrollMotionRuntime() {
           entry.target.classList.add('is-visible');
           observer?.unobserve(entry.target);
         });
-      }, { threshold: 0.12, rootMargin: '0px 0px -32px 0px' });
+      }, { threshold: 0.01, rootMargin: '0px 0px -24px 0px' });
     }
 
     const reveal = (node: Element) => {
       if (!(node instanceof HTMLElement) || !node.matches('.zip-reveal') || node.classList.contains('is-visible')) return;
-      if (observer) observer.observe(node);
-      else node.classList.add('is-visible');
+      if (!observer) {
+        node.classList.add('is-visible');
+        return;
+      }
+
+      // React can replace classes after a timeline click. Reveal immediately when
+      // that rerendered step is already on screen; otherwise wait for scrolling.
+      const bounds = node.getBoundingClientRect();
+      if (bounds.top < window.innerHeight && bounds.bottom > 0) {
+        node.classList.add('is-visible');
+        observer.unobserve(node);
+      } else {
+        observer.observe(node);
+      }
     };
     const revealTree = (node: Node) => {
       if (!(node instanceof Element)) return;
