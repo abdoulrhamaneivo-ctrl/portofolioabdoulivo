@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { useMemo, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Code2, Layers3, Network, PanelsTopLeft } from 'lucide-react';
 import type { PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
+import JourneyTimeline from '@/components/JourneyTimeline';
 
 function list(value: string) {
   return Array.from(new Set(value.split(/[,;\n]/).map((part) => part.trim()).filter(Boolean)));
@@ -67,7 +68,6 @@ function HeroScene({ data }: { data: PortfolioData }) {
 }
 
 export default function HomeContent({ data }: { data: PortfolioData }) {
-  const progressRef = useRef<HTMLSpanElement>(null);
   const profile = data.profile;
   const name = profile.fullName.trim();
   const skills = useMemo(() => data.skillGroups.filter((group) => group.published), [data.skillGroups]);
@@ -78,31 +78,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     'DIGITALISATION', 'RÉSEAUX & ASSISTANCE', 'GESTION DE PROJET', 'OUTILS OFFICE', 'PROGRAMMATION', 'CONCEPTION NUMÉRIQUE',
   ], []);
 
-  useEffect(() => {
-    const nodes = Array.from(document.querySelectorAll<HTMLElement>('.zip-reveal'));
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const observer = reducedMotion ? null : new IntersectionObserver((entries) => entries.forEach((entry) => {
-      if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer?.unobserve(entry.target); }
-    }), { threshold: .12, rootMargin: '0px 0px -30px 0px' });
-    document.documentElement.classList.add('zip-motion-ready');
-    if (observer) nodes.forEach((node) => observer.observe(node));
-    else nodes.forEach((node) => node.classList.add('is-visible'));
-    let frame = 0;
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        progressRef.current?.style.setProperty('transform', `scaleX(${max > 0 ? Math.min(1, window.scrollY / max) : 0})`);
-      });
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { if (frame) window.cancelAnimationFrame(frame); observer?.disconnect(); document.documentElement.classList.remove('zip-motion-ready'); window.removeEventListener('scroll', onScroll); };
-  }, []);
-
   return <div className="zip-home">
-    <div className="zip-progress" aria-hidden="true"><span ref={progressRef} /></div>
     <section className="zip-hero" id="accueil">
       <div className="zip-hero-copy">
         <p className="zip-eyebrow zip-reveal"><i /> PORTFOLIO PERSONNEL <span>/</span> TRANSFORMATION DIGITALE</p>
@@ -151,7 +127,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     <section className="zip-journey" id="parcours">
       <div className="zip-container zip-journey-layout">
         <header className="zip-section-head zip-journey-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> 04</p><h2>Apprendre.<br /><em>Contribuer.</em><br />Avancer.</h2></div><p>Les étapes qui montrent comment mon intérêt pour le numérique se traduit en pratique.</p><Link className="zip-text-link" href="/about#parcours">Tout le parcours <ArrowUpRight size={16} /></Link></header>
-        {journey.length ? <div className="zip-timeline">{journey.slice(0, 4).map((item, index) => <article className="zip-timeline-item zip-reveal" key={item.id} style={{ '--delay': `${index * 80}ms` } as CSSProperties}><span className="zip-timeline-marker">{String(index + 1).padStart(2, '0')}</span><div><p>{item.category} <span>/</span> {item.period}</p><h3>{item.title}</h3>{item.organization && <small>{item.organization}</small>}<p className="zip-timeline-copy">{item.description}</p></div></article>)}</div> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Le parcours sera détaillé ici.</h3><p>Formations, expériences et contributions apparaîtront à mesure qu’elles seront publiées.</p></div></div>}
+        {journey.length ? <JourneyTimeline items={journey.slice(0, 4)} /> : <div className="zip-empty-inline zip-reveal"><span className="zip-empty-mark">01</span><div><h3>Le parcours sera détaillé ici.</h3><p>Formations, expériences et contributions apparaîtront à mesure qu’elles seront publiées.</p></div></div>}
       </div>
     </section>
 

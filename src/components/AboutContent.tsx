@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowUpRight, Download, Mail } from 'lucide-react';
 import type { PortfolioData } from '@/lib/portfolio';
 import { safeExternalUrl } from '@/lib/urls';
+import JourneyTimeline from '@/components/JourneyTimeline';
 
 function sortJourney(items: PortfolioData['journey']) {
   return [...items].filter((item) => item.published).sort((a, b) => {
@@ -27,8 +28,8 @@ export default function AboutContent({ data }: { data: PortfolioData }) {
       <div className="zip-profile-copy"><p className="zip-kicker">QUI JE SUIS</p><h2>{name}<em>{profile.title || 'Acteur de la transformation digitale'}</em></h2><p>{profile.about || profile.introduction || 'Cette présentation se complète depuis l’administration avec ton histoire, tes objectifs et les expériences qui comptent pour toi.'}</p><div className="zip-profile-tags">{skills.map((group) => <span key={group.id}>{group.title}</span>)}</div><div className="zip-profile-actions"><Link className="zip-button zip-button-accent" href="/competences">Mes compétences <ArrowUpRight size={15} /></Link>{cv.fileUrl && <Link className="zip-button zip-button-outline" href="/cv">CV consultable <Download size={15} /></Link>}</div></div>
     </section>
 
-    <section className="zip-about-journey" id="parcours"><header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> EXPÉRIENCES</p><h2>Les étapes qui <em>comptent.</em></h2></div><p>Études, expériences et contributions, réunies dans un fil chronologique compact.</p></header>
-      {journey.length ? <ol className="zip-about-timeline">{journey.map((item, index) => <li className="zip-about-step zip-reveal" id={`experience-${item.id}`} key={item.id}><span className="zip-about-step-number">{String(index + 1).padStart(2, '0')}</span><div><p className="zip-about-step-meta">{item.category}{item.period && <span>{item.period}</span>}</p><h3>{item.title}</h3>{item.organization && <strong>{item.organization}</strong>}{item.description && <p>{item.description}</p>}</div></li>)}</ol> : <div className="zip-empty-inline"><span className="zip-empty-mark">01</span><div><h3>Le parcours détaillé apparaîtra ici.</h3><p>Les étapes publiées depuis l’administration s’afficheront dans cette chronologie.</p></div></div>}
+    <section className="zip-about-journey" id="parcours"><header className="zip-section-head zip-reveal"><div><p className="zip-kicker">PARCOURS <span>/</span> EXPÉRIENCES</p><h2>Les étapes qui <em>comptent.</em></h2></div><p>Études, expériences et contributions, réunies dans un fil chronologique. Ouvre une étape pour en découvrir le détail.</p></header>
+      {journey.length ? <JourneyTimeline items={journey} variant="full" /> : <div className="zip-empty-inline"><span className="zip-empty-mark">01</span><div><h3>Le parcours détaillé apparaîtra ici.</h3><p>Les étapes publiées depuis l’administration s’afficheront dans cette chronologie.</p></div></div>}
     </section>
 
     <section className="zip-about-contact" id="contact"><div className="zip-about-contact-copy zip-reveal"><p className="zip-kicker">RESTONS EN CONTACT</p><h2>À propos d’un projet,<br /><em>parlons-en.</em></h2><p>Une opportunité, une collaboration ou une question sur mon parcours.</p></div><div className="zip-about-contact-links zip-reveal">
