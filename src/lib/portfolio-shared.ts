@@ -60,6 +60,15 @@ export type PortfolioExperiment = {
   published: boolean;
 };
 
+export type PortfolioGalleryItem = {
+  id: string;
+  imageUrl: string;
+  caption: string;
+  occasion: string;
+  date: string;
+  published: boolean;
+};
+
 export type PortfolioSkillGroup = {
   id: string;
   title: string;
@@ -84,6 +93,7 @@ export type PortfolioData = {
   certificates: PortfolioCertificate[];
   skillGroups: PortfolioSkillGroup[];
   experiments: PortfolioExperiment[];
+  gallery: PortfolioGalleryItem[];
   settings: PortfolioSettings;
   cv: { fileUrl: string; fileName: string; updatedAt: string };
 };
@@ -100,6 +110,7 @@ export const emptyPortfolio: PortfolioData = {
     { id: 'project-management', title: 'Gestion de projet', items: 'Gestion de projet', level: 'À préciser', summary: '', published: true },
   ],
   experiments: [],
+  gallery: [],
   settings: { accent: 'lime', sceneDepth: 54, motionSpeed: 1 },
   cv: { fileUrl: '', fileName: '', updatedAt: '' },
 };

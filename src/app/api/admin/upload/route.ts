@@ -30,6 +30,7 @@ const allowedTypes: Record<string, Set<string>> = {
   cv: new Set(['application/pdf', 'application/msword', mimeByExtension.docx.mime, mimeByExtension.odt.mime]),
   project: new Set(['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']),
   profile: new Set(['image/jpeg', 'image/png', 'image/webp']),
+  gallery: new Set(['image/jpeg', 'image/png', 'image/webp']),
 };
 
 function jsonError(error: string, status: number) {
@@ -71,6 +72,8 @@ export async function POST(request: NextRequest) {
         ? 'Format accepté : PDF, DOC, DOCX, ODT ou image JPG, PNG, WebP.'
         : kind === 'project'
           ? 'Format accepté pour un projet : image JPG, PNG, WebP ou vidéo MP4/WebM.'
+          : kind === 'gallery'
+            ? 'Format accepté pour une photo : JPG, PNG ou WebP.'
           : 'Format accepté pour le portrait : image JPG, PNG ou WebP.', 415);
   }
 

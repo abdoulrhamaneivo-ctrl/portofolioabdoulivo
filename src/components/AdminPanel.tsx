@@ -15,6 +15,7 @@ import {
   FlaskConical,
   FolderKanban,
   Globe2,
+  Images,
   LayoutDashboard,
   LogOut,
   Palette,
@@ -27,10 +28,10 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioJourneyItem, type PortfolioProject } from '@/lib/portfolio-shared';
+import { portfolioAccents, type PortfolioAccent, type PortfolioCertificate, type PortfolioData, type PortfolioExperiment, type PortfolioGalleryItem, type PortfolioJourneyItem, type PortfolioProject } from '@/lib/portfolio-shared';
 import ProjectMediaFrame from '@/components/ProjectMediaFrame';
 
-type Section = 'overview' | 'profile' | 'skills' | 'journey' | 'projects' | 'certificates' | 'experiments' | 'cv' | 'studio';
+type Section = 'overview' | 'profile' | 'skills' | 'journey' | 'projects' | 'certificates' | 'gallery' | 'experiments' | 'cv' | 'studio';
 type Session = { configured: boolean; authenticated: boolean };
 
 const emptyProject = (): PortfolioProject => ({
@@ -51,6 +52,10 @@ const emptyExperiment = (): PortfolioExperiment => ({
   id: crypto.randomUUID(), title: '', category: 'Prototype', description: '', technologies: '', status: 'En cours', published: false,
 });
 
+const emptyGalleryItem = (): PortfolioGalleryItem => ({
+  id: crypto.randomUUID(), imageUrl: '', caption: '', occasion: '', date: '', published: false,
+});
+
 const sections: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Vue d’ensemble', icon: LayoutDashboard },
   { id: 'profile', label: 'Profil', icon: UserRound },
@@ -58,6 +63,7 @@ const sections: { id: Section; label: string; icon: typeof LayoutDashboard }[] =
   { id: 'journey', label: 'Parcours', icon: Briefcase },
   { id: 'projects', label: 'Projets', icon: FolderKanban },
   { id: 'certificates', label: 'Certificats', icon: Award },
+  { id: 'gallery', label: 'Galerie photo', icon: Images },
   { id: 'experiments', label: 'Laboratoire', icon: FlaskConical },
   { id: 'cv', label: 'CV', icon: FileText },
   { id: 'studio', label: 'Identité visuelle', icon: Palette },
@@ -78,6 +84,7 @@ export default function AdminPanel() {
   const [certificateDraft, setCertificateDraft] = useState<PortfolioCertificate | null>(null);
   const [journeyDraft, setJourneyDraft] = useState<PortfolioJourneyItem | null>(null);
   const [experimentDraft, setExperimentDraft] = useState<PortfolioExperiment | null>(null);
+  const [galleryDraft, setGalleryDraft] = useState<PortfolioGalleryItem | null>(null);
 
   useEffect(() => {
     void checkSession();
@@ -144,7 +151,7 @@ export default function AdminPanel() {
     }
   }
 
-  async function uploadFile(file: File, kind: 'certificate' | 'cv' | 'project' | 'profile') {
+  async function uploadFile(file: File, kind: 'certificate' | 'cv' | 'project' | 'profile' | 'gallery') {
     if (file.size > 4 * 1024 * 1024) throw new Error('Le fichier dépasse la limite de 4 Mo. Réduis sa taille puis réessaie.');
     const formData = new FormData();
     formData.set('file', file);
@@ -195,6 +202,21 @@ export default function AdminPanel() {
       const uploaded = await uploadFile(file, 'project');
       setProjectDraft({ ...projectDraft, imageUrl: uploaded.url });
       setNotice('Image ajoutée. Enregistre le projet pour publier le changement.');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Envoi impossible.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadGalleryImage(file?: File) {
+    if (!file || !galleryDraft) return;
+    setBusy(true);
+    setError('');
+    try {
+      const uploaded = await uploadFile(file, 'gallery');
+      setGalleryDraft({ ...galleryDraft, imageUrl: uploaded.url });
+      setNotice('Photo ajoutée. Complète sa légende puis enregistre-la.');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Envoi impossible.');
     } finally {
@@ -485,6 +507,32 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {section === 'gallery' && (
+            <div className="max-w-5xl">
+              <div className="admin-list-heading"><SectionIntro title="Photos personnelles & événements" description="Ajoute tes propres photos : moments de formation, rencontres, événements ou coulisses. Chaque image publiée apparaît dans la galerie de l’accueil." /><button className="admin-primary" onClick={() => setGalleryDraft(emptyGalleryItem())}><Plus size={16} />Ajouter une photo</button></div>
+              <p className="mt-4 max-w-3xl text-xs leading-5 text-neutral-500">Choisis des photos que tu souhaites rendre publiques. JPG, PNG ou WebP · 4 Mo maximum. Les images d’ambiance de banques d’images ne sont pas utilisées ici.</p>
+              {galleryDraft ? (
+                <section className="admin-card mt-6">
+                  <div className="admin-card-heading"><div><p className="admin-eyebrow">GALERIE PERSONNELLE</p><h2>{data.gallery.some((item) => item.id === galleryDraft.id) ? 'Modifier cette photo' : 'Nouvelle photo'}</h2></div><button className="admin-icon-button" aria-label="Fermer" onClick={() => setGalleryDraft(null)}><X size={18} /></button></div>
+                  <div className="admin-form-grid mt-6">
+                    <div className="col-span-full"><Field label="Photo" hint="JPG, PNG ou WebP · 4 Mo maximum. La photo sera ajoutée telle quelle, sans être remplacée par une image générique."><div className="flex flex-wrap items-center gap-3"><label className="admin-upload-button"><Upload size={15} />{galleryDraft.imageUrl ? 'Remplacer la photo' : 'Choisir une photo'}<input type="file" className="sr-only" accept="image/png,image/jpeg,image/webp,.jpg,.jpeg,.png,.webp" disabled={busy} onChange={(e) => { const file = e.currentTarget.files?.[0]; e.currentTarget.value = ''; void uploadGalleryImage(file); }} /></label>{galleryDraft.imageUrl && <button type="button" className="admin-row-action" onClick={() => setGalleryDraft({ ...galleryDraft, imageUrl: '' })}>Retirer</button>}</div></Field>
+                      {galleryDraft.imageUrl && <div className="relative mt-4 aspect-video max-w-2xl overflow-hidden rounded-xl bg-neutral-100"><Image src={galleryDraft.imageUrl} alt={galleryDraft.caption || 'Aperçu de la photo'} fill sizes="(max-width: 768px) 100vw, 640px" className="object-cover" unoptimized /></div>}
+                    </div>
+                    <Field label="Légende"><input className="admin-input" value={galleryDraft.caption} onChange={(e) => setGalleryDraft({ ...galleryDraft, caption: e.target.value })} placeholder="Le moment ou la personne mise en valeur" /></Field>
+                    <Field label="Contexte"><input className="admin-input" value={galleryDraft.occasion} onChange={(e) => setGalleryDraft({ ...galleryDraft, occasion: e.target.value })} placeholder="Salon, formation, rencontre, coulisses…" /></Field>
+                    <Field label="Date"><input className="admin-input" type="date" value={galleryDraft.date} onChange={(e) => setGalleryDraft({ ...galleryDraft, date: e.target.value })} /></Field>
+                  </div>
+                  <div className="admin-check-row"><label><input type="checkbox" checked={galleryDraft.published} onChange={(e) => setGalleryDraft({ ...galleryDraft, published: e.target.checked })} />Publier cette photo sur l’accueil</label></div>
+                  <div className="admin-card-footer"><button className="admin-secondary" onClick={() => setGalleryDraft(null)}>Annuler</button><button className="admin-primary" disabled={busy || !galleryDraft.imageUrl || !galleryDraft.caption.trim()} onClick={() => {
+                    const exists = data.gallery.some((item) => item.id === galleryDraft.id);
+                    const next = { ...data, gallery: exists ? data.gallery.map((item) => item.id === galleryDraft.id ? galleryDraft : item) : [galleryDraft, ...data.gallery] };
+                    void saveData(next, 'Photo enregistrée dans la galerie.'); setGalleryDraft(null);
+                  }}><Save size={16} />Enregistrer la photo</button></div>
+                </section>
+              ) : data.gallery.length ? <div className="admin-entry-list mt-6">{data.gallery.map((item) => <article className="admin-entry" key={item.id}><div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">{item.imageUrl && <Image src={item.imageUrl} alt="" fill sizes="80px" className="object-cover" unoptimized />}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-semibold text-neutral-900">{item.caption || 'Photo sans légende'}</h3><span className={`admin-status ${item.published ? 'is-published' : ''}`}>{item.published ? 'Publié' : 'Brouillon'}</span></div><p className="mt-1 truncate text-xs text-neutral-500">{[item.occasion, item.date && new Date(`${item.date}T12:00:00`).toLocaleDateString('fr-FR')].filter(Boolean).join(' · ') || 'Contexte à compléter'}</p></div><button className="admin-row-action" onClick={() => setGalleryDraft({ ...item })}>Modifier</button><button className="admin-delete" onClick={() => { if (!window.confirm(`Supprimer la photo « ${item.caption || 'sans légende'} » ?`)) return; void saveData({ ...data, gallery: data.gallery.filter((entry) => entry.id !== item.id) }, 'Photo supprimée de la galerie.'); }} aria-label={`Supprimer ${item.caption}`}><X size={16} /></button></article>)}</div> : <div className="admin-entry-list mt-6"><EmptyState icon={<Images size={22} />} title="Ta galerie est prête" detail="Ajoute des photos de toi et de tes événements. Elles ne seront visibles sur le site qu’après leur publication." /></div>}
+            </div>
+          )}
+
           {section === 'experiments' && (
             <div className="max-w-5xl">
               <div className="admin-list-heading"><SectionIntro title="Expérimentations & prototypes" description="Garde les essais en cours dans un laboratoire séparé des projets terminés. Tu choisis lesquels montrer sur le site." /><button className="admin-primary" onClick={() => setExperimentDraft(emptyExperiment())}><Plus size={16} />Nouvelle expérimentation</button></div>
@@ -560,6 +608,7 @@ function Overview({ data, projects, certificates, onSelect }: { data: PortfolioD
     { section: 'journey' as const, title: 'Raconte ton parcours', detail: 'Études, expériences et contributions', done: data.journey.some((item) => item.published), icon: <Briefcase size={14} /> },
     { section: 'projects' as const, title: 'Ajoute tes projets', detail: 'Réalisations, rôle et preuves', done: data.projects.some((item) => item.published), icon: <FolderKanban size={14} /> },
     { section: 'certificates' as const, title: 'Organise tes certificats', detail: 'Documents, compétences et vérification', done: data.certificates.some((item) => item.published), icon: <Award size={14} /> },
+    { section: 'gallery' as const, title: 'Ajoute tes photos personnelles', detail: 'Moments de parcours et événements', done: data.gallery.some((item) => item.published), icon: <Images size={14} /> },
     { section: 'cv' as const, title: 'Rends ton CV consultable', detail: 'Dépose une version PDF à jour', done: Boolean(data.cv.fileUrl), icon: <FileText size={14} /> },
   ];
   const missing = setup.filter((item) => !item.done).map((item) => item.title.toLowerCase());

@@ -7,6 +7,7 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, Award, Code2, ExternalLink, L
 import type { PortfolioCertificate, PortfolioData, PortfolioJourneyItem, PortfolioSkillGroup } from '@/lib/portfolio';
 import JourneyTimeline from '@/components/JourneyTimeline';
 import ProjectMediaFrame from '@/components/ProjectMediaFrame';
+import MomentsGallery from '@/components/MomentsGallery';
 import { safeExternalUrl } from '@/lib/urls';
 
 function list(value: string) {
@@ -82,6 +83,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
   const projects = useMemo(() => data.projects.filter((project) => project.published).sort((a, b) => Number(b.featured) - Number(a.featured)), [data.projects]);
   const certificates = useMemo(() => data.certificates.filter((certificate) => certificate.published), [data.certificates]);
   const featuredCertificates = useMemo(() => [...certificates].sort((a, b) => Number(b.featured) - Number(a.featured) || b.date.localeCompare(a.date)).slice(0, 3), [certificates]);
+  const gallery = useMemo(() => data.gallery.filter((item) => item.published && item.imageUrl), [data.gallery]);
   const topics = useMemo(() => [
     'DIGITALISATION', 'RÉSEAUX & ASSISTANCE', 'GESTION DE PROJET', 'OUTILS OFFICE', 'PROGRAMMATION', 'CONCEPTION NUMÉRIQUE',
   ], []);
@@ -143,15 +145,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
       </div>
     </section>
 
-    <section className="zip-visual-report" aria-labelledby="zip-visual-title">
-      <div className="zip-container">
-        <header className="zip-section-head zip-reveal"><div><p className="zip-kicker">UNIVERS NUMÉRIQUE <span>/</span> EN IMAGES</p><h2 id="zip-visual-title">Les idées prennent<br /><em>forme et matière.</em></h2></div><p>Des images d’ambiance donnent un aperçu des domaines qui m’intéressent. Les photos et vidéos de mes propres réalisations seront ajoutées sur chaque fiche projet.</p></header>
-        <div className="zip-visual-grid">
-          <figure className="zip-visual-card zip-reveal"><div className="zip-visual-photo"><Image src="/assets/images/editorial/ambient-code.webp" alt="Mains au clavier devant un écran de code" fill sizes="(max-width: 720px) 100vw, 58vw" unoptimized /><span>01 / CODE & CONCEPTION</span></div><figcaption><strong>Développement numérique</strong><a href="https://www.pexels.com/photo/programming-code-on-laptop-with-developer-hands-37880001/" target="_blank" rel="noreferrer">Photo d’Alicia Christin Gerald · Pexels <ArrowUpRight size={13} /></a></figcaption></figure>
-          <figure className="zip-visual-card zip-reveal" style={{ '--delay': '90ms' } as CSSProperties}><div className="zip-visual-photo"><Image src="/assets/images/editorial/ambient-network.webp" alt="Équipements réseau et serveurs éclairés en bleu" fill sizes="(max-width: 720px) 100vw, 42vw" unoptimized /><span>02 / INFRASTRUCTURE</span></div><figcaption><strong>Réseaux & services numériques</strong><a href="https://www.pexels.com/photo/network-rack-17323801/" target="_blank" rel="noreferrer">Photo de Panumas Nikhomkhai · Pexels <ArrowUpRight size={13} /></a></figcaption></figure>
-        </div>
-      </div>
-    </section>
+    {gallery.length > 0 && <MomentsGallery items={gallery} />}
 
     <section className="zip-skills" id="competences">
       <div className="zip-container">
