@@ -483,31 +483,24 @@ export default function AdminPanel() {
 
           {section === 'studio' && (
             <section className="admin-card max-w-4xl">
-              <SectionIntro title="Identité visuelle & mouvement" description="Ajuste les détails visuels du portfolio. Les réglages sont enregistrés dans Neon et appliqués sur toutes les pages." />
+              <SectionIntro title="Identité visuelle & mouvement" description="La navigation orbitale reprend celle du studio fourni. Ajuste sa couleur, son amplitude et son rythme." />
               <div className="admin-studio-grid mt-7">
                 <div>
-                  <Field label="Scène 3D du portfolio" hint="Choisis l’animation du visuel principal : couches de démarche ou orbite des sections.">
-                    <div className="admin-scene-options" role="group" aria-label="Choisir la scène du portfolio">
-                      <button type="button" aria-pressed={data.settings.sceneMode === 'layers'} onClick={() => setData({ ...data, settings: { ...data.settings, sceneMode: 'layers' } })}>Couches</button>
-                      <button type="button" aria-pressed={data.settings.sceneMode === 'orbit'} onClick={() => setData({ ...data, settings: { ...data.settings, sceneMode: 'orbit' } })}>Orbite</button>
-                    </div>
-                  </Field>
                   <Field label="Couleur de signature" hint="La palette conserve le contraste avec les surfaces sombres et claires.">
                     <div className="admin-accent-options" role="group" aria-label="Choisir la couleur de signature">
                       {(Object.entries(portfolioAccents) as [PortfolioAccent, string][]).map(([accent, color]) => <button type="button" key={accent} aria-label={`Choisir ${accent}`} aria-pressed={data.settings.accent === accent} className="admin-accent-swatch" style={{ '--swatch': color } as CSSProperties} onClick={() => setData({ ...data, settings: { ...data.settings, accent } })}><span />{accent === 'lime' ? 'Vert citron' : accent === 'mint' ? 'Menthe' : accent === 'blue' ? 'Bleu' : 'Corail'}</button>)}
                     </div>
                   </Field>
-                  <Field label={`Profondeur 3D · ${data.settings.sceneDepth}%`} hint="Définit l’amplitude du relief lors des interactions au pointeur.">
+                  <Field label={`Amplitude de l’orbite · ${data.settings.sceneDepth}%`} hint="Règle l’écartement des six sections dans l’animation orbitale.">
                     <input className="admin-range" type="range" min="0" max="100" value={data.settings.sceneDepth} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, sceneDepth: Number(e.target.value) } })} />
                   </Field>
                   <Field label={`Rythme des animations · ${data.settings.motionSpeed.toFixed(2)}×`} hint="Le réglage respecte toujours la préférence système de réduction des animations.">
                     <input className="admin-range" type="range" min="0.65" max="1.35" step="0.05" value={data.settings.motionSpeed} style={{ accentColor: portfolioAccents[data.settings.accent] }} onChange={(e) => setData({ ...data, settings: { ...data.settings, motionSpeed: Number(e.target.value) } })} />
                   </Field>
                 </div>
-                <div className={`admin-studio-preview${data.settings.sceneMode === 'layers' ? ' is-layers' : ' is-orbit'}`} style={{ '--portfolio-accent': portfolioAccents[data.settings.accent], '--portfolio-depth': `${data.settings.sceneDepth}px`, '--portfolio-motion-speed': data.settings.motionSpeed } as CSSProperties}>
+                <div className="admin-studio-preview" style={{ '--portfolio-accent': portfolioAccents[data.settings.accent], '--portfolio-depth': `${data.settings.sceneDepth}px`, '--portfolio-motion-speed': data.settings.motionSpeed } as CSSProperties}>
                   <span className="admin-studio-preview-label">APERÇU DU STUDIO</span>
-                  {data.settings.sceneMode === 'layers' ? <div className="admin-studio-layer-stack" aria-hidden="true">{['COMPRENDRE', 'CONCEVOIR', 'CONSTRUIRE', 'ÉVALUER'].map((step, index) => <span key={step}>{`0${index + 1} · ${step}`}</span>)}</div> : <div className="admin-studio-orbit" aria-hidden="true"><i /><i /><i /></div>}
-                  <div className="admin-studio-preview-card"><span>PROFIL NUMÉRIQUE / 01</span><strong>Une présence qui prend forme.</strong><small>Portfolio · Parcours · Projets</small></div>
+                  <div className="admin-studio-orbit" aria-hidden="true"><div className="admin-studio-orbit-ring">{['PROFIL', 'PROJETS', 'PARCOURS', 'COMPÉTENCES', 'CERTIFICATS', 'CONTACT'].map((section, index) => <span key={section} style={{ transform: `rotateY(${index * 60}deg) translateZ(calc(112px + var(--portfolio-depth, 54px) * .2))` }}>{section}</span>)}</div></div>
                 </div>
               </div>
               <div className="admin-card-footer"><span className="text-xs text-neutral-400">Les changements deviennent visibles après l’enregistrement.</span><button className="admin-primary" onClick={() => saveData(data, 'Identité visuelle enregistrée.')} disabled={busy}><Save size={16} />Enregistrer les réglages</button></div>

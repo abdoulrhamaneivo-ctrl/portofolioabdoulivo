@@ -23,10 +23,8 @@ function useReducedMotionFlag() {
 }
 
 function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { data: PortfolioData; projectCount: number; certificateCount: number; skillCount: number }) {
-  const [expanded, setExpanded] = useState(false);
   const reducedMotion = useReducedMotionFlag();
-  const sceneMode = data.settings.sceneMode;
-  const depth = Math.min(data.settings.sceneDepth / 54, 1.35);
+  const depth = 0.72 + data.settings.sceneDepth / 100 * 0.55;
   const sections = [
     { label: 'Mon profil', href: '#recit' },
     { label: 'Projets', href: '#projets' },
@@ -39,9 +37,9 @@ function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { 
   return (
     <div className="story-zip-scene-wrap">
       <div
-        className={`story-zip-stage${sceneMode === 'layers' && expanded ? ' is-expanded' : ''}`}
+        className="story-zip-stage"
         role="group"
-        aria-label={sceneMode === 'layers' ? 'Couches interactives de la démarche' : 'Navigation orbitale du portfolio'}
+        aria-label="Navigation orbitale du portfolio"
         onPointerMove={(event) => {
           if (event.pointerType !== 'mouse' || reducedMotion.current) return;
           const bounds = event.currentTarget.getBoundingClientRect();
@@ -55,21 +53,14 @@ function PortfolioScene({ data, projectCount, certificateCount, skillCount }: { 
           event.currentTarget.style.setProperty('--scene-tilt-y', '0deg');
         }}
       >
-        <span className="story-zip-scene-label">{sceneMode === 'layers' ? 'DÉMARCHE / 04 ÉTAPES' : 'NAVIGATION / 06 SECTIONS'}</span>
-        {sceneMode === 'layers' ? <div className="story-zip-rig story-zip-rig--layers" aria-hidden="true">
-          {['Comprendre', 'Concevoir', 'Construire', 'Évaluer'].map((step, index) => <div className="story-zip-layer" key={step} style={{ '--layer-z': `${(index - 1.5) * (expanded ? 120 : 42) * depth}px`, '--layer-opacity': `${0.55 + index * 0.15}` } as CSSProperties}>
-            <span>{String(index + 1).padStart(2, '0')} · {step.toUpperCase()}</span>
-            <strong>{step}</strong>
-            <small>{index === 0 ? data.profile.title || 'Profil en construction' : index === 1 ? `${projectCount.toString().padStart(2, '0')} projet${projectCount === 1 ? '' : 's'} présenté${projectCount === 1 ? '' : 's'}` : index === 2 ? `${skillCount.toString().padStart(2, '0')} savoir-faire documenté${skillCount === 1 ? '' : 's'}` : `${certificateCount.toString().padStart(2, '0')} preuve${certificateCount === 1 ? '' : 's'} publiée${certificateCount === 1 ? '' : 's'}`}</small>
-          </div>)}
-        </div> : <div className="story-zip-rig story-zip-rig--orbit">
+        <span className="story-zip-scene-label">NAVIGATION / 06 SECTIONS</span>
+        <div className="story-zip-rig story-zip-rig--orbit">
           <div className="story-zip-orbit-ring" aria-label="Sections à explorer" style={{ '--orbit-radius-config': `${190 * depth}px` } as CSSProperties}>
             {sections.map((section, index) => <Link href={section.href} className="story-zip-orbit-node" key={section.href} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--orbit-radius))` }}>{section.label}</Link>)}
           </div>
-        </div>}
+        </div>
         <span className="story-zip-beam" aria-hidden="true" />
-        {sceneMode === 'layers' && <button className="story-zip-expand" type="button" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>{expanded ? 'Rassembler les couches' : 'Explorer les couches'} <span aria-hidden="true">↗</span></button>}
-        <span className="story-zip-scene-hint">{sceneMode === 'layers' ? 'Survole pour incliner · clique pour déployer' : 'Survole pour faire tourner · choisis une section'}</span>
+        <span className="story-zip-scene-hint">Survole pour faire tourner · choisis une section</span>
       </div>
       <div className="story-zip-scene-caption"><span>THE LIVING PORTFOLIO</span><span>{projectCount} projets · {certificateCount} certificats · {skillCount} compétences</span></div>
     </div>

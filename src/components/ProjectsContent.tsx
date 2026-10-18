@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowDownRight, ArrowUpRight, Layers3 } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import type { PortfolioProject } from '@/lib/portfolio';
 
 function ProjectImage({ project, index }: { project: PortfolioProject; index: number }) {
@@ -24,8 +24,6 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
   const pointerValueRef = useRef<{ tiltX: number; tiltY: number; x: number; y: number } | null>(null);
   const reducedMotionRef = useRef(false);
   const totalTechnologies = new Set(projects.flatMap((project) => project.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).size;
-  const sceneProject = projects.find((project) => project.featured) || projects[0];
-  const sceneTechnologies = sceneProject ? Array.from(new Set(sceneProject.technologies.split(/[,;]+/).map((item) => item.trim()).filter(Boolean))).slice(0, 4) : [];
 
   useEffect(() => {
     const page = pageRef.current;
@@ -82,17 +80,12 @@ export default function ProjectsContent({ projects }: { projects: PortfolioProje
           <p className="project-page-lead">Chaque projet raconte un problème, les choix de conception, le code et ce qui en est ressorti. Voici le travail derrière les lignes de technologies.</p>
           <a className="project-scroll-link" href="#realisations"><span>Explorer les projets</span><ArrowDownRight size={17} /></a>
         </div>
-        <div className="project-hero-console project-reveal" aria-hidden="true">
-          <div className="project-console-top"><span>{sceneProject ? `PROJET / ${sceneProject.featured ? 'À LA UNE' : 'SÉLECTION'}` : 'ESPACE PROJETS / PRÊT'}</span><span>● {String(projects.length).padStart(2, '0')} PUBLICATION{projects.length === 1 ? '' : 'S'}</span></div>
-          <div className="project-console-graphic"><div className="project-console-grid" /><div className="project-console-layer-stack" aria-hidden="true">{['Comprendre', 'Concevoir', 'Construire', 'Évaluer'].map((step, index) => <span key={step}>{`0${index + 1} · ${step.toUpperCase()}`}</span>)}</div>
-            <div className="project-console-core">
-              <span>ÉTUDE DE CAS / 01</span>
-              <strong>{sceneProject?.title || 'Le prochain projet'}</strong>
-              <p>{sceneProject?.summary || 'Ajoute une réalisation dans l’administration pour la faire apparaître ici.'}</p>
-            </div>
-            {sceneTechnologies.map((technology, index) => <span className={`project-console-tech-node tech-node-${index + 1}`} key={technology}>{technology}</span>)}
+        <div className="project-hero-orbit project-reveal" aria-hidden="true">
+          <div className="project-hero-orbit-glow" />
+          <div className="project-hero-orbit-ring">
+            {['PROBLÈME', 'IDÉE', 'UX / UI', 'CODE', 'TEST', 'RÉSULTAT'].map((step, index) => <span key={step} style={{ transform: `rotateY(${index * 60}deg) translateZ(var(--project-orbit-radius))` }}>{step}</span>)}
           </div>
-          <div className="project-console-bottom"><span>{sceneProject ? `${sceneTechnologies.length.toString().padStart(2, '0')} TECHNOLOGIES ASSOCIÉES` : <>PROBLÈME <i>→</i> CONTRIBUTION <i>→</i> SOLUTION</>}</span><Layers3 size={14} /></div>
+          <span className="project-hero-orbit-label">ÉTUDES DE CAS / 06 TEMPS</span>
         </div>
         <div className="project-hero-footnote"><span>SCROLL POUR DÉCOUVRIR</span><span className="project-footnote-line" /><span>↓</span></div>
       </header>
