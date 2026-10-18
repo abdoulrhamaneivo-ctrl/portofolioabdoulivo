@@ -13,24 +13,24 @@ export const globalConfig = {
         href: "/"
       },
       {
-        title: "Projets",
-        href: "/projects"
-      },
-      {
         title: "Parcours",
         href: "/about#parcours"
       },
       {
-        title: "Laboratoire",
-        href: "/experiments"
+        title: "Savoir-faire",
+        href: "/competences"
+      },
+      {
+        title: "Projets",
+        href: "/projects"
       },
       {
         title: "Certificats",
         href: "/certifications"
       },
       {
-        title: "Compétences",
-        href: "/competences"
+        title: "Laboratoire",
+        href: "/experiments"
       },
       {
         title: "À propos",

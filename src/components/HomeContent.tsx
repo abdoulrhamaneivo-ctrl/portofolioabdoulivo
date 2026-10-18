@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Image from 'next/image';
 import Link from 'next/link';
 import type { PortfolioCertificate, PortfolioData, PortfolioProject } from '@/lib/portfolio';
+import { getJourneyCapabilities } from '@/lib/competences';
 import { safeExternalUrl } from '@/lib/urls';
 
 function valuesFrom(items: string[]) {
@@ -295,6 +296,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
     ...publishedProjects.map((item) => item.technologies),
     ...publishedCertificates.map((item) => item.skills),
   ]), [publishedProjects, publishedCertificates]);
+  const journeyCapabilities = useMemo(() => getJourneyCapabilities(publishedJourney), [publishedJourney]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -360,10 +362,11 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
           </p>
           <div className="story-hero-meta story-reveal">
             <a href="#recit" className="story-scroll-cue"><span className="story-scroll-line" />Faire défiler pour découvrir <span aria-hidden="true">↓</span></a>
+            <Link href="/competences" className="story-skills-shortcut">Voir mes savoir-faire <span aria-hidden="true">↗</span></Link>
             <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
           </div>
         </div>
-        <div className="story-hero-art story-reveal"><PortfolioScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length} /></div>
+        <div className="story-hero-art story-reveal"><PortfolioScene data={data} projectCount={publishedProjects.length} certificateCount={publishedCertificates.length} skillCount={skills.length + journeyCapabilities.length} /></div>
         <div className="story-side-label" aria-hidden="true">PORTFOLIO — {name ? name.toUpperCase() : 'DOSSIER PERSONNEL'}</div>
       </section>
 
@@ -394,18 +397,27 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
         <div className="story-journey-main story-reveal"><p className="story-kicker">Un parcours qui se construit</p><h2>Chaque étape laisse une trace.</h2>
           {publishedJourney.length > 0 && <div className="story-journey-summary"><strong>{String(publishedJourney.length).padStart(2, '0')}</strong><span>étapes publiées</span><i aria-hidden="true" /><span>Études · expériences · contributions</span></div>}
           {publishedJourney.length ? <div className="story-timeline">{publishedJourney.map((item, index) => <article className="story-timeline-item story-reveal" key={item.id} style={{ transitionDelay: `${Math.min(index, 5) * 90}ms` }}><div className="story-timeline-marker"><span>{String(index + 1).padStart(2, '0')}</span></div><div className="story-timeline-copy"><div className="story-timeline-meta"><span>{item.category}</span>{item.period && <span>{item.period}</span>}</div><h3>{item.title}</h3>{item.organization && <p className="story-timeline-org">{item.organization}</p>}{item.description && <p className="story-timeline-description">{item.description}</p>}</div></article>)}</div> : <div className="story-timeline-empty"><span className="story-timeline-marker"><span>01</span></span><div><h3>Les étapes de ton histoire restent à raconter.</h3><p>Ajoute tes formations, expériences ou contributions dans l’administration. La frise se construira à partir des étapes publiées.</p></div></div>}
-          {data.cv.fileUrl && <Link href="/cv" className="story-section-link">Consulter mon CV <span aria-hidden="true">⟶</span></Link>}
+          <div className="story-journey-actions"><Link href="#competences" className="story-section-link">Voir mes savoir-faire <span aria-hidden="true">⟶</span></Link>{data.cv.fileUrl && <Link href="/cv" className="story-section-link">Consulter mon CV <span aria-hidden="true">⟶</span></Link>}</div>
+        </div>
+      </section>
+
+      <section className="story-section story-skills" id="competences">
+        <div className="story-section-aside story-reveal"><span>04 / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
+        <div className="story-skills-main story-reveal"><p className="story-kicker">Pratique, contribution, formation</p><h2>Ce que je sais faire et ce que je développe.</h2><p className="story-skills-copy">Ces savoir-faire viennent des expériences et des formations décrites dans mon parcours. Les compétences techniques sont reliées séparément aux projets et certificats publiés.</p>
+          {journeyCapabilities.length > 0 && <div className="story-capability-grid">{journeyCapabilities.map((capability) => <article className="story-capability-card" key={capability.name}><div className="story-capability-top"><span>{capability.status}</span><span>{capability.source.period}</span></div><h3>{capability.name}</h3><p>{capability.summary}</p><Link href={`/about#experience-${capability.source.id}`}>Voir l’étape du parcours <span aria-hidden="true">↗</span></Link></article>)}</div>}
+          {skills.length ? <SkillEvidenceExplorer projects={publishedProjects} certificates={publishedCertificates} /> : journeyCapabilities.length === 0 && <div className="story-skills-empty"><div className="story-skills-empty-heading"><span>COMMENT LES COMPÉTENCES APPARAISSENT</span><p>Chaque compétence affichée sera reliée à une preuve publiée, pour distinguer ce qui est appris de ce qui est déjà mis en pratique.</p></div><ol><li><span>01</span><strong>Projet ou certificat</strong><small>Une preuve publiée</small></li><li><span>02</span><strong>Technologies et acquis</strong><small>Les éléments documentés</small></li><li><span>03</span><strong>Compétence reliée</strong><small>Une information vérifiable</small></li></ol></div>}
+          <Link href="/competences" className="story-section-link">Voir les compétences détaillées <span aria-hidden="true">⟶</span></Link>
         </div>
       </section>
 
       <section className="story-section story-work" id="projets">
-        <div className="story-section-heading story-reveal"><div><p className="story-kicker">04 / CE QUE JE FAIS</p><h2>Les idées deviennent réelles.</h2></div><p>Des projets documentés pour comprendre le besoin, le travail mené et ce qui a été appris.</p></div>
+        <div className="story-section-heading story-reveal"><div><p className="story-kicker">05 / CE QUE JE FAIS</p><h2>Les idées deviennent réelles.</h2></div><p>Des projets documentés pour comprendre le besoin, le travail mené et ce qui a été appris.</p></div>
         {selectedProjects.length ? <div className="story-project-list">{selectedProjects.map((project, index) => <ProjectStory key={project.id} project={project} index={index} />)}</div> : <div className="story-empty-work story-reveal"><div className="story-empty-work-copy"><span className="story-empty-index">01 — PREMIÈRE ÉTUDE DE CAS</span><h3>Le prochain projet mérite d’être raconté.</h3><p>Ajoute une réalisation dans l’administration pour présenter son contexte, ta contribution, sa solution et les preuves associées.</p><div className="story-empty-diagram" aria-hidden="true"><span>PROBLÈME</span><i>⟶</i><span>IDÉE</span><i>⟶</i><span>SOLUTION</span></div></div><div className="story-empty-work-visual" aria-hidden="true"><Image src="/assets/images/projects/project1.jpg" alt="" fill sizes="(max-width: 760px) 100vw, 38vw" className="story-empty-work-image" unoptimized /><div className="story-empty-work-visual-caption"><span>STRUCTURE D’UNE ÉTUDE DE CAS</span><span>VISUEL D’AMBIANCE · À REMPLACER PAR UN PROJET PUBLIÉ</span></div><div className="story-empty-work-visual-grid"><span>CONTEXTE</span><i>01</i><span>CONTRIBUTION</span><i>02</i><span>RÉSULTAT</span><i>03</i></div></div></div>}
         {publishedProjects.length > selectedProjects.length && <Link href="/projects" className="story-section-link story-reveal">Parcourir toutes les réalisations <span aria-hidden="true">⟶</span></Link>}
       </section>
 
       {publishedExperiments.length > 0 && <section className="story-lab-section" id="laboratoire">
-        <div className="story-lab-heading"><div><p className="story-kicker">05 / CE QUE J’EXPLORE</p><h2>Des idées encore en mouvement.</h2><p>Prototypes et questions ouvertes, gardés distincts des projets finalisés.</p></div><Link href="/experiments">Explorer le laboratoire <span aria-hidden="true">⟶</span></Link></div>
+        <div className="story-lab-heading"><div><p className="story-kicker">06 / CE QUE J’EXPLORE</p><h2>Des idées encore en mouvement.</h2><p>Prototypes et questions ouvertes, gardés distincts des projets finalisés.</p></div><Link href="/experiments">Explorer le laboratoire <span aria-hidden="true">⟶</span></Link></div>
         <div className="story-lab-grid">{publishedExperiments.slice(0, 3).map((experiment, index) => <Link className="story-lab-card" href="/experiments" key={experiment.id} style={{ animationDelay: `${index * 80}ms` }}>
           <div><span>{experiment.category || 'EXPLORATION'}</span><span className="story-lab-state"><i />{experiment.status || 'En cours'}</span></div>
           <span className="story-lab-mark" aria-hidden="true">{String(index + 1).padStart(2, '0')}<i>✳</i></span>
@@ -413,14 +425,6 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
           {experiment.technologies && <span className="story-lab-tech">{experiment.technologies}</span>}
         </Link>)}</div>
       </section>}
-
-      <section className="story-section story-skills" id="competences">
-        <div className="story-section-aside story-reveal"><span>{publishedExperiments.length ? '06' : '05'} / SAVOIR-FAIRE</span><span className="story-aside-rule" /><span>Des preuves, pas des promesses</span></div>
-        <div className="story-skills-main story-reveal"><p className="story-kicker">Ce que j’apprends à maîtriser</p><h2>Les compétences se construisent, projet après projet.</h2><p className="story-skills-copy">Les domaines ci-dessous sont tirés des technologies utilisées dans les projets et des compétences mentionnées dans les certificats publiés.</p>
-          {skills.length ? <SkillEvidenceExplorer projects={publishedProjects} certificates={publishedCertificates} /> : <div className="story-skills-empty"><div className="story-skills-empty-heading"><span>COMMENT LES COMPÉTENCES APPARAISSENT</span><p>Chaque compétence affichée sera reliée à une preuve publiée, pour distinguer ce qui est appris de ce qui est déjà mis en pratique.</p></div><ol><li><span>01</span><strong>Projet ou certificat</strong><small>Une preuve publiée</small></li><li><span>02</span><strong>Technologies et acquis</strong><small>Les éléments documentés</small></li><li><span>03</span><strong>Compétence reliée</strong><small>Une information vérifiable</small></li></ol></div>}
-          <Link href="/competences" className="story-section-link">Voir les compétences détaillées <span aria-hidden="true">⟶</span></Link>
-        </div>
-      </section>
 
       <section className="story-section story-proof" id="certificats">
         <div className="story-section-heading story-reveal"><div><p className="story-kicker">{publishedExperiments.length ? '07' : '06'} / CE QUI LE PROUVE</p><h2>Apprendre, puis le montrer.</h2></div><p>Une sélection de certificats et de formations qui donnent du contexte aux compétences acquises.</p></div>

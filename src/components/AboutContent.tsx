@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { PortfolioData } from '@/lib/portfolio';
+import { getJourneyCapabilities } from '@/lib/competences';
 import { safeExternalUrl } from '@/lib/urls';
 import AboutPortraitCard from './AboutPortraitCard';
 
@@ -17,6 +18,7 @@ export default function AboutContent({ data }: { data: PortfolioData }) {
     const year = (period: string) => Number(period.match(/\b(?:19|20)\d{2}\b/)?.[0] || 0);
     return year(b.period) - year(a.period);
   });
+  const journeyCapabilities = getJourneyCapabilities(journey);
   const linkedin = safeExternalUrl(data.profile.linkedin);
   const github = safeExternalUrl(data.profile.github);
 
@@ -45,11 +47,21 @@ export default function AboutContent({ data }: { data: PortfolioData }) {
 
     <section className="portfolio-about-timeline" id="parcours">
       <header><p className="portfolio-about-eyebrow">02 / LES ÉTAPES</p><h2>Apprendre, contribuer, avancer.</h2><p>Une chronologie nourrie par les expériences et formations publiées dans l’administration.</p></header>
-      {journey.length ? <ol>{journey.map((item, index) => <li key={item.id} className="portfolio-timeline-entry">
+      {journey.length ? <ol>{journey.map((item, index) => <li id={`experience-${item.id}`} key={item.id} className="portfolio-timeline-entry">
         <span className="portfolio-timeline-index">{String(index + 1).padStart(2, '0')}</span>
         <div><p className="portfolio-timeline-meta"><span>{item.category}</span>{item.period && <span>{item.period}</span>}</p><h3>{item.title}</h3>{item.organization && <p className="portfolio-timeline-org">{item.organization}</p>}{item.description && <p className="portfolio-timeline-copy">{item.description}</p>}</div>
       </li>)}</ol> : <div className="portfolio-timeline-empty"><span>01</span><p>Les étapes du parcours apparaîtront ici après leur publication dans l’administration.</p></div>}
     </section>
+
+    {journeyCapabilities.length > 0 && <section className="portfolio-about-capabilities" aria-labelledby="about-capabilities-title">
+      <header><p className="portfolio-about-eyebrow">03 / SAVOIR-FAIRE</p><h2 id="about-capabilities-title">Ce que mes expériences montrent.</h2><p>Les compétences déjà pratiquées, les contributions collectives et les sujets en formation restent clairement distingués.</p></header>
+      <div className="skills-capability-grid">{journeyCapabilities.map((capability) => <article className="skills-capability-card" key={capability.name}>
+        <div className="skills-capability-meta"><span>{capability.status}</span><time>{capability.source.period}</time></div>
+        <h3>{capability.name}</h3><p>{capability.summary}</p>
+        <Link href={`#experience-${capability.source.id}`}>Étape : {capability.source.title}<span aria-hidden="true">↗</span></Link>
+      </article>)}</div>
+      <Link href="/competences" className="portfolio-about-capabilities-link">Voir la cartographie détaillée <span aria-hidden="true">⟶</span></Link>
+    </section>}
 
     <section className="portfolio-about-contact">
       <div><p className="portfolio-about-eyebrow">03 / RESTONS EN CONTACT</p><h2>La suite se construit dans l’échange.</h2><p>Pour parler d’un projet, d’une collaboration ou d’une opportunité professionnelle.</p></div>
