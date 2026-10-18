@@ -53,7 +53,6 @@ body { color: #F2F0E9; }
 }
 
 .story-hero { min-height: min(850px, calc(100svh - 72px)); }
-.story-hero-intro,
 .story-about-text,
 .story-project-summary,
 .story-journey-main > p:not(.story-kicker),
@@ -64,6 +63,7 @@ body { color: #F2F0E9; }
 .story-hero-index { color: #A7ABB2; font-size: 11px; }
 .story-hero-meta-note,
 .story-side-label { color: #A7ABB2; }
+.story-hero .story-hero-intro { color: #4B5563; }
 .story-ribbon { border-color: rgba(242, 240, 233, .16); }
 .story-ribbon-track { color: #F2F0E9; }
 .story-tile-marquee { display: flex; flex-direction: column; gap: 14px; overflow: hidden; padding: 44px 0; border-bottom: 1px solid rgba(242, 240, 233, .14); background: #0B0D10; }
@@ -619,7 +619,7 @@ body { color: #F2F0E9; }
 .portfolio-about-contact > div:first-child > p:last-child { color: #C9CCD2; }
 .portfolio-about-contact-links > a > span,.portfolio-about-contact-links i { color: #A7ABB2; }
 
-.story-skills-shortcut { display: inline-flex; align-items: center; gap: 9px; padding: 0 0 4px; border-bottom: 1px solid color-mix(in srgb, var(--portfolio-accent) 62%, transparent); color: #F2F0E9; font-size: 12px; font-weight: 650; text-decoration: none; }
+.story-skills-shortcut { display: inline-flex; align-items: center; gap: 9px; min-height: 34px; padding: 5px 0; border-bottom: 1px solid color-mix(in srgb, var(--portfolio-accent) 62%, transparent); color: #0B0D10; font-size: 12px; font-weight: 700; text-decoration: none; }
 .story-skills-shortcut span { color: var(--portfolio-accent); font-size: 15px; transition: transform 220ms ease; }
 .story-skills-shortcut:hover span { transform: translate(3px,-3px); }
 .story-skills-shortcut:focus-visible { outline: 2px solid var(--portfolio-accent); outline-offset: 5px; }
@@ -672,7 +672,7 @@ body { color: #F2F0E9; }
 
 @media (max-width: 480px) {
   .portfolio-skills-page .portfolio-page-heading h1 { font-size: clamp(34px,10vw,52px); line-height: .98; }
-  .story-hero-meta { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .story-hero-meta { align-items: flex-start; flex-direction: column; gap: 12px; }
   .story-hero-meta-note { max-width: none; }
   .story-skills-shortcut { min-height: 34px; align-items: center; }
   .story-timeline { padding-left: 34px; }

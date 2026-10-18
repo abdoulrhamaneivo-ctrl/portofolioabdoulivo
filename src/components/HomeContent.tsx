@@ -360,7 +360,7 @@ export default function HomeContent({ data }: { data: PortfolioData }) {
           <p className="story-hero-intro story-reveal">
             {data.profile.introduction || 'Une présentation vivante de mon parcours, des idées que je transforme et des compétences que je développe.'}
           </p>
-          <div className="story-hero-meta story-reveal">
+          <div className="story-hero-meta">
             <a href="#recit" className="story-scroll-cue"><span className="story-scroll-line" />Faire défiler pour découvrir <span aria-hidden="true">↓</span></a>
             <Link href="/competences" className="story-skills-shortcut">Voir mes savoir-faire <span aria-hidden="true">↗</span></Link>
             <span className="story-hero-meta-note">Une histoire racontée par les réalisations</span>
